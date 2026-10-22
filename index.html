@@ -195,7 +195,8 @@ dialog p{color:var(--muted);margin:0 0 14px}
 /* Originalseiten */
 .pages{margin:30px 0 0}
 .pages summary{font-size:18px;font-weight:700;cursor:pointer;padding:6px 0}
-.pages img{width:100%;border-radius:12px;margin-top:12px;display:block;border:1px solid var(--line)}
+.pages .pg{margin-top:12px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.pages .pg img{display:block;width:100%;margin:0;border:0}
 
 /* Kachelraster */
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-top:2px}
@@ -283,7 +284,7 @@ dialog p{color:var(--muted);margin:0 0 14px}
 <script>
 'use strict';
 /* ---------- Konstanten ---------- */
-const APP_VERSION = '2.1 vom 22.10.2026';
+const APP_VERSION = '2.2 vom 22.10.2026';
 const DEFAULT_MODEL = 'google/gemini-3.8-flash';
 const TAXONOMY = {
   Quelle: ['Youtube', 'Buch', 'Zeitung', 'Blog'],
@@ -329,7 +330,7 @@ function buildPrompt(kind) {
   const video = kind === 'youtube', photo = kind === 'photo';
   const intro = {
     youtube: 'Schau dir das Video vollständig an (Bild, Ton, Einblendungen) und extrahiere die Rezepte.',
-    photo: 'Die Bilder zeigen Rezepte: Fotos von Kochbuch- oder Zeitschriftenseiten oder Screenshots von Webseiten und Apps. Mehrere Bilder können zu einem Rezept gehören (z. B. Seite 1 und 2 oder ein langer Screenshot in mehreren Teilen). Lies alles vollständig und extrahiere die Rezepte.',
+    photo: 'Die Bilder zeigen Rezepte: Fotos von Kochbuch- oder Zeitschriftenseiten oder Screenshots von Webseiten und Apps. Mehrere Bilder können zu einem Rezept gehören (z. B. Seite 1 und 2 oder mehrere Screenshots). Lange Screenshots kommen in mehreren Teilen, die sich am Rand leicht überschneiden: Übernimm Zutaten und Schritte aus diesen Überschneidungen nicht doppelt. Lies alles vollständig und extrahiere die Rezepte.',
     text: 'Unten steht ein Rezepttext, etwa von einer Webseite kopiert. Extrahiere daraus die Rezepte.',
   }[kind];
   return `${intro}
@@ -480,15 +481,26 @@ function fmtAmount(amount, unit) {
 
 /* Bilder verkleinern und Gericht-Foto ausschneiden */
 const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
-async function prepImage(blob, max = 1500) {
+/* Bilder für Gemini vorbereiten: volle Schärfe bis 1600 px Breite, lange Screenshots in
+   Teile von höchstens 2000 px Höhe schneiden, die sich um 120 px überlappen (keine Zeile wird zerschnitten).
+   join = Überlappung relativ zur Breite, damit die Originalseiten nahtlos angezeigt werden können. */
+async function prepImageParts(blob, maxW = 1600, sliceH = 2000, overlap = 120) {
   const src = URL.createObjectURL(blob);
   try {
     const img = await loadImg(src);
-    const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
-    const c = document.createElement('canvas');
-    c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    return c.toDataURL('image/jpeg', 0.82);
+    const w0 = img.naturalWidth, h0 = img.naturalHeight;
+    const s = Math.min(1, maxW / w0);
+    const W = Math.round(w0 * s), H = Math.round(h0 * s);
+    const n = H <= sliceH * 1.15 ? 1 : Math.ceil((H - overlap) / (sliceH - overlap));
+    const hEach = n === 1 ? H : Math.ceil((H + (n - 1) * overlap) / n);
+    const parts = [];
+    for (let k = 0; k < n; k++) {
+      const y = k * (hEach - overlap), h = Math.min(hEach, H - y);
+      const c = document.createElement('canvas'); c.width = W; c.height = h;
+      c.getContext('2d').drawImage(img, 0, y / s, w0, h / s, 0, 0, W, h);
+      parts.push({ url: c.toDataURL('image/jpeg', 0.85), join: k ? overlap / W : 0 });
+    }
+    return parts;
   } finally { URL.revokeObjectURL(src); }
 }
 async function cropDish(dataUrl, box) {
@@ -859,7 +871,7 @@ function siblingsOf(r) {
 function inputOf(r) {
   if (r.kind === 'youtube' && r.videoId) return { kind: 'youtube', videoId: r.videoId };
   if (r.input) return r.input;
-  if (r.kind === 'photo' && r.pages?.length) return { kind: 'photo', pages: r.pages };
+  if (r.kind === 'photo' && r.pages?.length) return { kind: 'photo', pages: r.pages, joins: r.pageJoin || null };
   if (r.kind === 'text' && r.sourceText) return { kind: 'text', text: r.sourceText };
   return null;
 }
@@ -884,10 +896,13 @@ async function startPhotoImport(blobs) {
   blobs = [...blobs].filter((b) => b && b.size);
   if (!blobs.length) return;
   if (blobs.length > 6) toast('Es werden die ersten 6 Bilder verwendet.');
-  const pages = [];
-  for (const b of blobs.slice(0, 6)) { try { pages.push(await prepImage(b)); } catch (_) {} }
+  const pages = [], joins = [];
+  for (const b of blobs.slice(0, 6)) {
+    try { for (const part of await prepImageParts(b)) { pages.push(part.url); joins.push(part.join); } } catch (_) {}
+  }
   if (!pages.length) { toast('Die Bilder konnten nicht gelesen werden.'); return; }
-  const input = { kind: 'photo', pages };
+  if (pages.length > 16) { pages.length = 16; joins.length = 16; toast('Sehr lang: Es wird nur der obere Teil verwendet.'); }
+  const input = { kind: 'photo', pages, joins };
   if (needKey(input)) return;
   await runImport(input, []);
 }
@@ -929,7 +944,7 @@ async function runImport(input, siblings) {
     for (let k = 0; k < list.length; k++) {
       await db.put({
         ...list[k], id: k ? newId() : rec.id, batch: rec.id, kind: input.kind,
-        videoId: input.videoId || null, pages: input.pages || null, sourceText: input.text || null,
+        videoId: input.videoId || null, pages: input.pages || null, pageJoin: input.joins || null, sourceText: input.text || null,
         createdAt: createdAt - k, status: 'ok', importedAt: Date.now(), cost,
         part: list.length > 1 ? k + 1 : 0, partsTotal: list.length,
       });
@@ -1117,7 +1132,7 @@ function viewDetail(r) {
       ${isVideo && s.t !== null && s.t !== undefined ? `<a class="ts" href="${videoUrl(r.videoId, s.t)}" target="_blank" rel="noopener">Im Video ab ${fmtStamp(s.t)}</a>` : ''}</div></li>`).join('')}</ol>
 
     ${r.tips ? `<h2 class="section-h">Tipps</h2><p class="tips">${esc(r.tips)}</p>` : ''}
-    ${r.pages?.length ? `<details class="pages" id="originale"><summary>Originalseiten (${r.pages.length})</summary>${r.pages.map((u) => `<img src="${u}" alt="Originalseite" loading="lazy">`).join('')}</details>` : ''}
+    ${r.pages?.length ? `<details class="pages" id="originale"><summary>Originalseiten</summary>${pagesHtml(r)}</details>` : ''}
 
     <div class="foot">
       <a class="btn ghost" href="#/r/${r.id}/bearbeiten">Bearbeiten</a>
@@ -1126,6 +1141,17 @@ function viewDetail(r) {
     </div>
     ${r.cost ? `<p class="cost">Import hat ${decimal(r.cost, 3)} $ gekostet.</p>` : ''}
   </article>`;
+}
+
+/* Teile eines langen Screenshots wieder nahtlos untereinander zeigen */
+function pagesHtml(r) {
+  const groups = [];
+  r.pages.forEach((u, n) => {
+    const j = r.pageJoin?.[n] || 0;
+    if (!j || !groups.length) groups.push([]);
+    groups[groups.length - 1].push([u, j]);
+  });
+  return groups.map((g) => `<div class="pg">${g.map(([u, j]) => `<img src="${u}" alt="Originalseite" loading="lazy"${j ? ` style="margin-top:-${(j * 100).toFixed(3)}%"` : ''}>`).join('')}</div>`).join('');
 }
 
 function viewEdit(r) {
