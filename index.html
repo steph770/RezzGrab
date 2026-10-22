@@ -296,7 +296,7 @@ dialog p{color:var(--muted);margin:0 0 14px}
 <script>
 'use strict';
 /* ---------- Konstanten ---------- */
-const APP_VERSION = '2.4 vom 22.10.2026';
+const APP_VERSION = '2.5 vom 22.10.2026';
 const DEFAULT_MODEL = 'google/gemini-3.8-flash';
 const TAXONOMY = {
   Quelle: ['Youtube', 'Buch', 'Zeitung', 'Blog'],
@@ -339,11 +339,12 @@ const ICONS = {
 const SYSTEM_PROMPT = 'Du extrahierst Kochrezepte aus Videos, Bildern und Texten. Du antwortest ausschließlich mit einem einzigen JSON-Objekt nach dem vorgegebenen Schema, ohne Markdown und ohne Text davor oder danach.';
 
 function buildPrompt(kind) {
-  const video = kind === 'youtube', photo = kind === 'photo';
+  const video = kind === 'youtube', photo = kind === 'photo', web = kind === 'web';
   const intro = {
     youtube: 'Schau dir das Video vollständig an (Bild, Ton, Einblendungen) und extrahiere die Rezepte.',
     photo: 'Die Bilder zeigen Rezepte: Fotos von Kochbuch- oder Zeitschriftenseiten oder Screenshots von Webseiten und Apps. Mehrere Bilder können zu einem Rezept gehören (z. B. Seite 1 und 2 oder mehrere Screenshots). Lange Screenshots kommen in mehreren Teilen, die sich am Rand leicht überschneiden: Übernimm Zutaten und Schritte aus diesen Überschneidungen nicht doppelt. Lies alles vollständig und extrahiere die Rezepte.',
     text: 'Unten steht ein Rezepttext, etwa von einer Webseite kopiert. Extrahiere daraus die Rezepte.',
+    web: 'Rufe die unten genannte Seite mit dem Web-Abruf-Werkzeug ab, genau diese Adresse mit allen Parametern, und extrahiere das Rezept. Verwende nur den Inhalt dieser Seite. Lässt sich die Seite nicht abrufen oder zeigt sie statt des Rezepts nur einen Anmelde- oder Bezahlhinweis, setze is_recipe = false und beschreibe das Problem in error in einem kurzen deutschen Satz.',
   }[kind];
   return `${intro}
 
@@ -365,12 +366,12 @@ Regeln pro Rezept:
 - hauptzutat: genau einer dieser Werte, wörtlich: ${TAXONOMY.Hauptzutat.map((x) => `"${x}"`).join(', ')}. Gemeint ist die Zutat, die das Gericht prägt. Bei Fleisch- oder Fischgerichten mit viel Gemüse zählt das Fleisch bzw. der Fisch. Passt nichts (z. B. Kuchen): null.
 - aufwand: "Alltag" bei überschaubarer aktiver Arbeit und gängigen Techniken, gut unter der Woche machbar. "Projekt" bei vielen Komponenten, anspruchsvoller Technik oder langer aktiver Arbeit. Lange passive Zeiten (Schmoren, Gehen lassen) allein machen kein Projekt.
 - vegetarisch: true nur, wenn keine Zutat Fleisch, Geflügel, Fisch, Meeresfrüchte, Fleischbrühe, Gelatine, Schmalz, Fischsauce, Sardellen oder Worcestershiresauce ist. Ei, Milchprodukte und Honig sind erlaubt. Eine optionale Fleischbeilage zählt als nicht vegetarisch. false, wenn eine solche Zutat vorkommt. Unklar: null.
-${video ? '' : '- quelle: "Buch" für Kochbuchseiten, "Zeitung" für Zeitungen, Zeitschriften und deren Apps oder Webseiten (z. B. NYT Cooking), "Blog" für sonstige Webseiten und Rezeptportale. Unklar: null.\n'}- tips: wichtige Hinweise zu Technik oder Varianten, höchstens drei kurze Sätze, sonst null.
+${web ? '- image_url: Adresse des Hauptfotos des Gerichts auf der Seite (etwa aus og:image), sonst null.\n' : ''}${video ? '' : '- quelle: "Buch" für Kochbuchseiten, "Zeitung" für Zeitungen, Zeitschriften und deren Apps oder Webseiten (z. B. NYT Cooking), "Blog" für sonstige Webseiten und Rezeptportale. Unklar: null.\n'}- tips: wichtige Hinweise zu Technik oder Varianten, höchstens drei kurze Sätze, sonst null.
 - Ist gar kein Rezept enthalten, setze is_recipe = false und recipes = [].
 
 Schema:
-{"is_recipe": boolean, ${video ? '"channel": string|null, "video_duration_s": number|null' : '"source_name": string|null (Name des Buchs, der Zeitung oder Webseite, wenn erkennbar)'},
- "recipes": [{"title": string, ${video ? '"part_start_s": number|null, "hero_s": number|null, ' : ''}${photo ? '"dish_photo": {"image": number, "box": [number, number, number, number]}|null, ' : ''}
+{"is_recipe": boolean, ${video ? '"channel": string|null, "video_duration_s": number|null' : '"source_name": string|null (Name des Buchs, der Zeitung oder Webseite, wenn erkennbar)'}${web ? ', "error": string|null' : ''},
+ "recipes": [{"title": string, ${video ? '"part_start_s": number|null, "hero_s": number|null, ' : ''}${photo ? '"dish_photo": {"image": number, "box": [number, number, number, number]}|null, ' : ''}${web ? '"image_url": string|null, ' : ''}
    "servings": number, "servings_estimated": boolean, "total_time_min": number, "total_time_estimated": boolean,
    "ingredients": [{"id": string, "group": string|null, "name": string, "amount": number|null, "amount_estimated": boolean, "unit": string|null, "note": string|null, "pantry": boolean}],
    "steps": [{"text": string, "uses": [{"ref": string, "amount": number|null, "unit": string|null}]${video ? ', "timestamp_s": number|null' : ''}}],
@@ -430,7 +431,7 @@ function sourceOf(r) {
   if (q === 'Zeitung') return ['zeitung', 'Zeitung'];
   if (q === 'Buch') return ['buch', 'Buch'];
   if (q === 'Blog') return ['web', 'Webseite'];
-  return r.kind === 'photo' ? ['foto', 'Foto'] : ['text', 'Text'];
+  return r.kind === 'photo' ? ['foto', 'Foto'] : r.kind === 'web' ? ['web', 'Webseite'] : ['text', 'Text'];
 }
 function tileHtml(r, tag = 'a') {
   const mode = tileModeOf(r);
@@ -658,8 +659,9 @@ function buildBody(input) {
   let parts;
   if (input.kind === 'youtube') parts = [{ type: 'video_url', video_url: { url: videoUrl(input.videoId) } }];
   else if (input.kind === 'photo') parts = input.pages.map((u) => ({ type: 'image_url', image_url: { url: u } }));
+  else if (input.kind === 'web') parts = [{ type: 'text', text: `Seite: ${input.url}` }];
   else parts = [{ type: 'text', text: `Rezepttext:\n\n${input.text}` }];
-  return {
+  const body = {
     model: state.settings.model || DEFAULT_MODEL,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
@@ -673,6 +675,14 @@ function buildBody(input) {
     usage: { include: true },
     stream: true,
   };
+  if (input.kind === 'web') {
+    // OpenRouter ruft die Seite auf seinen Servern ab, beschränkt auf die geteilte Domain
+    const host = new URL(input.url).hostname.replace(/^www\./, '');
+    const domains = /nyti\.ms|nytimes\.com/.test(host) ? ['nytimes.com', 'cooking.nytimes.com', 'nyti.ms'] : [host];
+    body.tools = [{ type: 'openrouter:web_fetch', parameters: { engine: 'firecrawl', max_uses: 3, max_content_tokens: 40000, allowed_domains: domains } }];
+    delete body.response_format; // JSON-Modus und Werkzeuge vertragen sich bei Gemini nicht
+  }
+  return body;
 }
 
 /* Gleiche Logik wie im Service Worker, für den Fall, dass er nicht verfügbar ist.
@@ -690,9 +700,18 @@ async function fetchJob(body, onProgress = () => {}) {
     let res = await send();
     if (!res.ok && res.status === 400) {
       const t = await res.text();
-      if (/response_format|json/i.test(t)) { delete body.response_format; res = await send(); } else return { status: 'error', code: 400, text: t };
+      if (/response_format|json/i.test(t)) { delete body.response_format; res = await send(); }
+      else if (/stream/i.test(t) && body.stream) { body.stream = false; res = await send(); }
+      else return { status: 'error', code: 400, text: t };
     }
     if (!res.ok) return { status: 'error', code: res.status, text: await res.text() };
+    if (!(res.headers.get('content-type') || '').includes('event-stream')) {
+      const j = await res.json();
+      if (j.error) return { status: 'error', code: j.error.code || 500, text: JSON.stringify(j) };
+      let c = j.choices?.[0]?.message?.content;
+      if (Array.isArray(c)) c = c.map((x) => x.text || '').join('');
+      return { status: 'done', content: c || '', finish: j.choices?.[0]?.finish_reason || '', cost: j.usage?.cost ?? null, broken: false };
+    }
     onProgress('read', 0);
     const reader = res.body.getReader(), dec = new TextDecoder();
     let buf = '';
@@ -804,6 +823,7 @@ function normalizeOne(data, meta, source, kind) {
     partStart: kind === 'youtube' ? num(data.part_start_s) : null,
     hero: kind === 'youtube' ? num(data.hero_s) : null,
     dishPhoto: dp && Array.isArray(dp.box) && dp.box.length === 4 ? { image: num(dp.image) ?? 0, box: dp.box } : null,
+    image: kind === 'web' && /^https:\/\/\S+$/i.test(String(data.image_url || '')) ? String(data.image_url) : null,
     tagsV2: true,
   };
   r.tags = computeTags(r, data, kind);
@@ -811,7 +831,10 @@ function normalizeOne(data, meta, source, kind) {
 }
 
 async function normalizeAll(data, meta, input) {
-  if (data.is_recipe === false) throw new Error(input.kind === 'youtube' ? 'In diesem Video wurde kein Rezept gefunden.' : 'Darin wurde kein Rezept gefunden.');
+  if (data.is_recipe === false) {
+    if (input.kind === 'web') throw new Error(`Die Seite ließ sich nicht lesen${data.error ? ` (${String(data.error).slice(0, 160)})` : ''}. Teile stattdessen Screenshots des Rezepts.`);
+    throw new Error(input.kind === 'youtube' ? 'In diesem Video wurde kein Rezept gefunden.' : 'Darin wurde kein Rezept gefunden.');
+  }
   const list = Array.isArray(data.recipes) ? data.recipes : (data.ingredients ? [data] : []);
   const source = input.kind === 'youtube' ? (meta?.author_name || data.channel || '') : (data.source_name ? String(data.source_name) : '');
   const out = list.map((x) => normalizeOne(x, meta, source, input.kind)).filter(Boolean);
@@ -929,6 +952,7 @@ function inputOf(r) {
   if (r.input) return r.input;
   if (r.kind === 'photo' && r.pages?.length) return { kind: 'photo', pages: r.pages, joins: r.pageJoin || null };
   if (r.kind === 'text' && r.sourceText) return { kind: 'text', text: r.sourceText };
+  if (r.kind === 'web' && r.sourceUrl) return { kind: 'web', url: r.sourceUrl };
   return null;
 }
 
@@ -936,9 +960,10 @@ async function startImport(raw) {
   const vid = ytId(raw);
   if (!vid) {
     const s = String(raw || '').trim();
+    const link = s.match(/https?:\/\/[^\s<>"']+/i)?.[0]?.replace(/[).,;!?]+$/, '');
+    if (link && s.length < 600) return startWebImport(link);
     if (s.length >= 120) return startTextImport(s);
-    if (/https?:\/\//i.test(s)) { toast('Webseiten kann Rezeptfang nicht direkt lesen. Mach Screenshots vom Rezept und teile sie an Rezeptfang.'); return; }
-    toast('Darin steckt kein YouTube-Link.'); return;
+    toast('Darin steckt kein Link und kein Rezepttext.'); return;
   }
   const siblings = state.recipes.filter((r) => r.videoId === vid);
   const done = siblings.filter((r) => r.status === 'ok');
@@ -959,6 +984,17 @@ async function startPhotoImport(blobs) {
   if (!pages.length) { toast('Die Bilder konnten nicht gelesen werden.'); return; }
   if (pages.length > 16) { pages.length = 16; joins.length = 16; toast('Sehr lang: Es wird nur der obere Teil verwendet.'); }
   const input = { kind: 'photo', pages, joins };
+  if (needKey(input)) return;
+  await runImport(input, []);
+}
+async function startWebImport(url) {
+  let u;
+  try { u = new URL(url); } catch (_) { toast('Diesen Link kann Rezeptfang nicht lesen.'); return; }
+  const key = (x) => { try { const v = new URL(x); return v.hostname.replace(/^www\./, '') + v.pathname.replace(/\/$/, ''); } catch (_) { return x; } };
+  const done = state.recipes.filter((r) => r.status === 'ok' && r.sourceUrl && key(r.sourceUrl) === key(u.href));
+  if (done.length) { toast('Dieses Rezept hast du schon.'); go(`#/r/${done[0].id}`); return; }
+  if (state.recipes.some((r) => r.status === 'importing' && r.input?.url && key(r.input.url) === key(u.href))) { toast('Läuft schon.'); return; }
+  const input = { kind: 'web', url: u.href };
   if (needKey(input)) return;
   await runImport(input, []);
 }
@@ -984,7 +1020,7 @@ const jobs = {
   all: async () => p((await jobStore('readonly')).getAll()),
   del: async (id) => p((await jobStore('readwrite')).delete(id)),
 };
-const progressLabel = { youtube: 'Gemini schaut sich das Video an …', photo: 'Gemini liest die Bilder …', text: 'Gemini liest den Text …' };
+const progressLabel = { youtube: 'Gemini schaut sich das Video an …', photo: 'Gemini liest die Bilder …', text: 'Gemini liest den Text …', web: 'Gemini ruft die Webseite ab …' };
 function showProgress(id, phase, n) {
   const el = document.getElementById(`prog-${id}`); if (!el) return;
   const r = state.recipes.find((x) => x.id === id);
@@ -1003,7 +1039,7 @@ async function runImport(input, siblings) {
   const body = buildBody(input);
   if (rec.bg) {
     // Der Service Worker arbeitet weiter, auch wenn du die App verlässt
-    navigator.serviceWorker.controller.postMessage({ type: 'import', id: rec.id, body, key: state.settings.apiKey.trim(), referer: location.origin, label: { youtube: 'Video', photo: 'Bilder', text: 'Text' }[input.kind] });
+    navigator.serviceWorker.controller.postMessage({ type: 'import', id: rec.id, body, key: state.settings.apiKey.trim(), referer: location.origin, label: { youtube: 'Video', photo: 'Bilder', text: 'Text', web: 'Webseite' }[input.kind] });
     return;
   }
   const lock = await holdScreen();
@@ -1040,7 +1076,7 @@ async function finalizeImport(id, job) {
     for (let k = 0; k < list.length; k++) {
       await db.put({
         ...list[k], id: k ? newId() : rec.id, batch: rec.id, kind: input.kind,
-        videoId: input.videoId || null, pages: input.pages || null, pageJoin: input.joins || null, sourceText: input.text || null,
+        videoId: input.videoId || null, pages: input.pages || null, pageJoin: input.joins || null, sourceText: input.text || null, sourceUrl: input.url || null,
         createdAt: rec.createdAt - k, status: 'ok', importedAt: Date.now(), cost,
         part: list.length > 1 ? k + 1 : 0, partsTotal: list.length,
       });
@@ -1156,7 +1192,7 @@ function renderFeed() {
       <p>${state.settings.apiKey ? '' : 'Vorher einmal in den Einstellungen deinen OpenRouter-Schlüssel eintragen.'}</p></div>`;
     return;
   }
-  const what = { youtube: 'aus dem Video', photo: 'aus den Bildern', text: 'aus dem Text' };
+  const what = { youtube: 'aus dem Video', photo: 'aus den Bildern', text: 'aus dem Text', web: 'von der Webseite' };
   const pendingHtml = pending.map((r) => `
     <div class="card"><div class="thumb">${imgTag(r)}
       <div class="state">${r.status === 'importing'
@@ -1318,7 +1354,7 @@ function viewDetail(r) {
       ? `<div class="hero slim" style="--tc:${tileColor(r)[0]}"><a class="back" href="#/" aria-label="Zurück zur Übersicht">‹</a></div>`
       : `<div class="hero">${imgTag(r, '', 'hero')}<a class="back" href="#/" aria-label="Zurück zur Übersicht">‹</a></div>`}
     <h1 class="dtitle">${esc(r.title)}</h1>
-    <div class="dmeta">${r.channel ? `<span>${esc(r.channel)}</span>` : ''}${r.totalTime ? `<span>${fmtTime(r.totalTime, r.totalTimeEst)}</span>` : ''}${isVideo ? `<a href="${videoUrl(r.videoId)}" target="_blank" rel="noopener">Video ansehen</a>` : ''}${r.pages?.length ? '<a href="#originale">Originalseiten</a>' : ''}</div>
+    <div class="dmeta">${r.channel ? `<span>${esc(r.channel)}</span>` : ''}${r.totalTime ? `<span>${fmtTime(r.totalTime, r.totalTimeEst)}</span>` : ''}${isVideo ? `<a href="${videoUrl(r.videoId)}" target="_blank" rel="noopener">Video ansehen</a>` : ''}${r.pages?.length ? '<a href="#originale">Originalseiten</a>' : ''}${r.sourceUrl ? `<a href="${esc(r.sourceUrl)}" target="_blank" rel="noopener">Original öffnen</a>` : ''}</div>
     ${(r.tags || []).length ? `<div class="tagrow">${r.tags.map((t) => `<span class="minitag">${esc(t)}</span>`).join('')}</div>` : ''}
     ${estText ? `<p class="notice">${estText.replace(/^./, (c) => c.toUpperCase())} ${estParts.length > 1 || estimated > 1 ? 'sind' : 'ist'} geschätzt und mit ≈ markiert. Korrigieren kannst du das unter „Bearbeiten“.</p>` : ''}
     ${missing ? `<p class="notice">${missing === 1 ? 'Bei einer Zutat' : `Bei ${missing} Zutaten`} fehlt die Menge. Du kannst sie unter „Bearbeiten“ ergänzen.</p>` : ''}

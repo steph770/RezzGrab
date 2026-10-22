@@ -1,7 +1,7 @@
 // Rezeptfang Service Worker: hält die App offline verfügbar, speichert Vorschaubilder zwischen
 // nimmt geteilte Inhalte (Links, Texte, Bilder) aus dem Android-Teilen-Menü entgegen
 // und führt Rezept-Importe im Hintergrund aus, auch wenn die App nicht sichtbar ist.
-const VERSION = 'rf-v10';
+const VERSION = 'rf-v11';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -116,9 +116,17 @@ async function runJob({ id, body, key, referer, label }) {
     if (!res.ok && res.status === 400) {
       const t = await res.text();
       if (/response_format|json/i.test(t)) { delete body.response_format; res = await send(); }
+      else if (/stream/i.test(t) && body.stream) { body.stream = false; res = await send(); }
       else return finishJob({ id, status: 'error', code: 400, text: t }, label);
     }
     if (!res.ok) return finishJob({ id, status: 'error', code: res.status, text: await res.text() }, label);
+    if (!(res.headers.get('content-type') || '').includes('event-stream')) {
+      const j = await res.json();
+      if (j.error) return finishJob({ id, status: 'error', code: j.error.code || 500, text: JSON.stringify(j) }, label);
+      let c = j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+      if (Array.isArray(c)) c = c.map((x) => x.text || '').join('');
+      return finishJob({ id, status: 'done', content: c || '', finish: (j.choices && j.choices[0] && j.choices[0].finish_reason) || '', cost: j.usage ? j.usage.cost : null, broken: false }, label);
+    }
     tellClients({ type: 'progress', id, phase: 'read', n: 0 });
     const reader = res.body.getReader(), dec = new TextDecoder();
     let buf = '';
@@ -158,7 +166,7 @@ async function finishJob(job, label) {
   if (!visible && self.Notification && Notification.permission === 'granted') {
     const ok = job.status === 'done' && job.content;
     await self.registration.showNotification(ok ? 'Rezept ist fertig' : 'Import fehlgeschlagen', {
-      body: ok ? `Das Rezept aus ${label === 'Video' ? 'dem Video' : label === 'Bilder' ? 'den Bildern' : 'dem Text'} liegt in Rezeptfang.` : 'Öffne Rezeptfang, um es noch einmal zu versuchen.',
+      body: ok ? `Das Rezept aus ${label === 'Video' ? 'dem Video' : label === 'Bilder' ? 'den Bildern' : label === 'Webseite' ? 'der Webseite' : 'dem Text'} liegt in Rezeptfang.` : 'Öffne Rezeptfang, um es noch einmal zu versuchen.',
       tag: `rf-${job.id}`, icon: 'icon-192.png', badge: 'icon-192.png',
     });
   }
