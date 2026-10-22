@@ -27,6 +27,8 @@
 - **Screenshots und Fotos:** Bilder in der Galerie auswählen > **Teilen** > **Rezeptfang**. Bis zu 6 Bilder pro Rezept, z. B. zwei Kochbuchseiten oder mehrere Screenshots aus der NYT-App.
 - **Text:** In der App auf **+ Rezept holen** > **Text einfügen**.
 - Der Import dauert je nach Länge 20 Sekunden bis einige Minuten. Lass die App dabei offen.
+- **Kacheln anpassen:** Lange auf eine Kachel drücken, dann Bild oder Titelkachel wählen und den Bildausschnitt verschieben. Feiner geht der Ausschnitt unter **Bearbeiten**.
+- **Filtern:** „Nach Tags filtern“ öffnet die Tags. Innerhalb einer Kategorie gilt „oder“, zwischen Kategorien „und“.
 - In den Schritten sind die Zutaten mit Mengen markiert und skalieren mit der Personenzahl. Tippen auf einen Schritt hakt ihn ab.
 - Fehlende Mengen sind markiert und lassen sich unter **Bearbeiten** ergänzen.
 

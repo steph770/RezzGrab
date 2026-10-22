@@ -173,17 +173,17 @@ dialog p{color:var(--muted);margin:0 0 14px}
 .toast.show{opacity:1}
 
 /* Filter */
-.searchrow{display:flex;gap:8px;align-items:center}
-.searchrow input{flex:1;min-width:0}
-.filterbtn{flex:none;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:11px 16px;font-weight:600;cursor:pointer}
-.filterbtn[aria-expanded="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.filterbtn b{background:var(--saffron);color:#231803;border-radius:999px;padding:0 7px;font-size:13px;margin-left:2px}
-.searchbox .chips{padding-top:10px;padding-bottom:4px}
-.fpanel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 14px 14px;margin-top:10px}
+.filterline{display:flex;align-items:center;gap:16px;margin:2px 0 12px}
+.filtertoggle{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 12px 9px 16px;font-weight:600;font-size:15px;cursor:pointer}
+.filtertoggle svg{width:18px;height:18px;transition:transform .2s}
+.filtertoggle[aria-expanded="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.filtertoggle[aria-expanded="true"] svg{transform:rotate(180deg)}
+.linkbtn{border:0;background:none;color:var(--herb);font-weight:600;font-size:15px;padding:6px 2px;cursor:pointer}
+.fpanel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 14px 14px;margin:0 0 14px}
 .frow{padding:6px 0;border-bottom:1px solid var(--line)}
 .frow:last-of-type{border-bottom:0}
 .flabel{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:2px}
-.fpanel .chips{padding:2px 14px 4px;margin:0 -14px}
+.fpanel .chips{padding:2px 0 4px;margin:0;flex-wrap:wrap;overflow:visible}
 .fpanel .rowbtns{margin-top:10px}
 /* Platzhalter ohne Bild */
 .ph{width:100%;height:100%;display:flex;align-items:flex-end;padding:16px;background:var(--herb);color:var(--herb-ink)}
@@ -196,6 +196,46 @@ dialog p{color:var(--muted);margin:0 0 14px}
 .pages{margin:30px 0 0}
 .pages summary{font-size:18px;font-weight:700;cursor:pointer;padding:6px 0}
 .pages img{width:100%;border-radius:12px;margin-top:12px;display:block;border:1px solid var(--line)}
+
+/* Kachelraster */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-top:2px}
+@media (min-width:560px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:820px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.grid > .card,.grid > .empty{grid-column:1/-1}
+.grid > .card{margin-bottom:8px}
+.tile{position:relative;display:block;aspect-ratio:1;border-radius:14px;overflow:hidden;background:var(--line);color:#fff;text-decoration:none;
+  -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:var(--fx,50%) var(--fy,50%);pointer-events:none;-webkit-user-drag:none}
+.tile img.lb{transform:scale(1.3334);transform-origin:var(--fx,50%) 50%}
+.tile::after{content:"";position:absolute;inset:36% 0 0;background:linear-gradient(to top,rgba(8,12,10,.86),rgba(8,12,10,.46) 55%,rgba(8,12,10,0));pointer-events:none}
+.tile .cap{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:10px 10px 9px;display:flex;flex-direction:column;gap:3px}
+.tile .cap b{font-size:13.5px;line-height:1.2;font-weight:700;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;hyphens:auto;overflow-wrap:break-word}
+.tile .cap small{font-size:11.5px;line-height:1.25;opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .src{position:absolute;top:7px;left:7px;z-index:2;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(8,12,10,.5);color:#fff}
+.tile .src svg{width:12px;height:12px}
+.tile .tbadge{position:absolute;top:7px;right:7px;z-index:2;font-size:11px;line-height:1;font-weight:700;padding:5px 7px;border-radius:999px;background:rgba(8,12,10,.5);color:#fff;white-space:nowrap}
+.tile.tt{background:var(--tc);color:var(--tf)}
+.tile.tt::after{display:none}
+.tile.tt .cap{padding:12px}
+.tile.tt .cap b{font-size:18px;line-height:1.12;font-weight:800;letter-spacing:-.01em;-webkit-line-clamp:5}
+.tile.tt .cap small{opacity:.78}
+.tile.tt .src,.tile.tt .tbadge{background:rgba(0,0,0,.14);color:var(--tf)}
+.hero img{object-position:var(--fx,50%) var(--fy,50%)}
+.hero.slim{aspect-ratio:auto;height:calc(env(safe-area-inset-top) + 88px);background:var(--tc)}
+/* Kachel-Einstellungen */
+.seg{display:flex;gap:6px;margin:6px 0 14px}
+.seg button{flex:1;min-width:0;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:10px 6px;font-weight:600;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.seg button:disabled{opacity:.4;cursor:default}
+.tdhead{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+.tdhead h2{font-size:20px;line-height:1.15;margin:0}
+.tdprev{width:104px;height:104px;flex:none;overflow:hidden}
+.tdprev .tile{width:172px;transform:scale(.6047);transform-origin:0 0}
+.kachel{display:flex;gap:16px;align-items:flex-start;margin:8px 0 6px}
+.kprev{width:128px;height:128px;flex:none;overflow:hidden}
+.kprev .tile{width:172px;transform:scale(.7442);transform-origin:0 0}
+.kopts{flex:1;min-width:0}
+.kopts input[type=range]{width:100%;accent-color:var(--herb);margin:8px 0 0}
 </style>
 </head>
 <body>
@@ -236,12 +276,14 @@ dialog p{color:var(--muted);margin:0 0 14px}
   <div class="rowbtns" style="margin-top:16px"><button class="btn ghost" type="button" id="dlgclose">Schließen</button></div>
 </dialog>
 
+<dialog id="tiledlg"><div id="tdbody"></div></dialog>
+
 <div class="toast" id="toast" role="status"></div>
 
 <script>
 'use strict';
 /* ---------- Konstanten ---------- */
-const APP_VERSION = '2.0 vom 22.10.2026';
+const APP_VERSION = '2.1 vom 22.10.2026';
 const DEFAULT_MODEL = 'google/gemini-3.8-flash';
 const TAXONOMY = {
   Quelle: ['Youtube', 'Buch', 'Zeitung', 'Blog'],
@@ -255,6 +297,31 @@ const ALL_TAGS = Object.values(TAXONOMY).flat();
 const catOf = (t) => Object.keys(TAXONOMY).find((c) => TAXONOMY[c].includes(t));
 const OLD_TAGS = { main: 'Hauptgericht', salad: 'Salat', dessert: 'Dessert', side: 'Beilage', soup: 'Suppe', starter: 'Vorspeise' };
 const timeTag = (t) => (t ? (t <= 30 ? 'bis 30 Min' : t <= 60 ? 'bis 60 Min' : 'über 60 Min') : null);
+const timeBadge = (t) => (t ? (t <= 30 ? '≤ 30 Min' : t <= 60 ? '≤ 60 Min' : '> 60 Min') : '');
+// "bis 60 Min" schließt beim Filtern die schnelleren Rezepte mit ein
+const timeMatch = (m, tag) => (!m ? false : tag === 'bis 30 Min' ? m <= 30 : tag === 'bis 60 Min' ? m <= 60 : m > 60);
+
+/* Farben der Titelkacheln nach Hauptzutat: [Hintergrund, Schrift] */
+const TILE_COLORS = {
+  'Gemüse': ['#3E7A4B', '#FFFFFF'],
+  'Hülsenfrüchte': ['#6B4A7A', '#FFFFFF'],
+  'Pasta, Reis & Getreide': ['#956619', '#FFFFFF'],
+  'Ei & Käse': ['#E8C24A', '#2B2206'],
+  'Fisch & Meeresfrüchte': ['#2C6488', '#FFFFFF'],
+  'Geflügel': ['#B35C25', '#FFFFFF'],
+  'Fleisch': ['#9C3030', '#FFFFFF'],
+};
+const TILE_DEFAULT = ['#4A5862', '#FFFFFF'];
+
+/* Eigene, schlichte Quellensymbole */
+const ICONS = {
+  video: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>',
+  zeitung: '<rect x="3.5" y="4.5" width="13" height="15" rx="1.5"/><path d="M16.5 8.5h3v9a2 2 0 0 1-2 2h-1M7 8.5h6M7 12h6M7 15.5h4"/>',
+  buch: '<path d="M3.5 5.5c2.8-1 5.8-.8 8.5 1 2.7-1.8 5.7-2 8.5-1v13c-2.8-1-5.8-.8-8.5 1-2.7-1.8-5.7-2-8.5-1z"/><path d="M12 6.5v13"/>',
+  web: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 2.6 14.6 0 17M12 3.5c-2.6 2.4-2.6 14.6 0 17"/>',
+  foto: '<rect x="3.5" y="7" width="17" height="12.5" rx="2"/><circle cx="12" cy="13.2" r="3.2"/><path d="M8.5 7l1.4-2.5h4.2L15.5 7"/>',
+  text: '<path d="M5 6.5h14M5 10.5h14M5 14.5h10M5 18.5h7"/>',
+};
 
 const SYSTEM_PROMPT = 'Du extrahierst Kochrezepte aus Videos, Bildern und Texten. Du antwortest ausschließlich mit einem einzigen JSON-Objekt nach dem vorgegebenen Schema, ohne Markdown und ohne Text davor oder danach.';
 
@@ -321,15 +388,51 @@ function thumbChain(id, n) {
   const base = [yt(id, 'maxresdefault'), yt(id, 'sddefault'), yt(id, 'hqdefault')];
   return n ? [yt(id, `maxres${n}`), yt(id, `sd${n}`), yt(id, `hq${n}`), ...base] : base;
 }
+const focusOf = (r) => num(r.focus) ?? 50;
 function imgTag(r, extra = '') {
-  if (r.image) return `<img ${extra} src="${r.image}" alt="">`;
+  const fx = `--fx:${focusOf(r)}%`;
+  if (r.image) return `<img ${extra} src="${r.image}" style="${fx}" alt="">`;
   if (r.videoId) {
     const chain = thumbChain(r.videoId, r.thumb || 0);
-    return `<img class="yt" ${extra} src="${chain[0]}" data-chain="${esc(chain.slice(1).join('|'))}" alt="">`;
+    return `<img class="yt" ${extra} src="${chain[0]}" data-chain="${esc(chain.slice(1).join('|'))}" style="${fx}" alt="">`;
   }
   const page = r.pages?.[r.coverPage || 0] || r.input?.pages?.[0];
-  if (page) return `<img ${extra} src="${page}" alt="" style="object-position:top">`;
-  return `<div class="ph"><span>${esc(r.title || 'Rezept')}</span></div>`;
+  if (page) return `<img ${extra} src="${page}" style="--fx:50%;--fy:0%" alt="">`;
+  return '';
+}
+const hasImage = (r) => !!(r.image || r.videoId || r.pages?.length);
+function tileModeOf(r) {
+  if (!hasImage(r)) return 'title';
+  if (r.tileMode) return r.tileMode;
+  return r.kind === 'photo' && !r.image ? 'title' : 'image';
+}
+function tileColor(r) {
+  const h = (r.tags || []).find((t) => catOf(t) === 'Hauptzutat');
+  return TILE_COLORS[h] || TILE_DEFAULT;
+}
+function sourceOf(r) {
+  const q = (r.tags || []).find((t) => catOf(t) === 'Quelle');
+  if (q === 'Youtube' || (!q && r.kind === 'youtube')) return ['video', 'Video'];
+  if (q === 'Zeitung') return ['zeitung', 'Zeitung'];
+  if (q === 'Buch') return ['buch', 'Buch'];
+  if (q === 'Blog') return ['web', 'Webseite'];
+  return r.kind === 'photo' ? ['foto', 'Foto'] : ['text', 'Text'];
+}
+function tileHtml(r, tag = 'a') {
+  const mode = tileModeOf(r);
+  const [bg, fg] = tileColor(r);
+  const [icon, label] = sourceOf(r);
+  const badge = timeBadge(r.totalTime);
+  const attrs = tag === 'a' ? `href="#/r/${r.id}" data-id="${r.id}" draggable="false"` : '';
+  return `<${tag} class="tile${mode === 'title' ? ' tt' : ''}" ${attrs}${mode === 'title' ? ` style="--tc:${bg};--tf:${fg}"` : ''}>${mode === 'image' ? imgTag(r, tag === 'a' ? 'loading="lazy"' : '') : ''}
+    <span class="src" role="img" aria-label="${label}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[icon]}</svg></span>
+    ${badge ? `<span class="tbadge">${badge}</span>` : ''}
+    <span class="cap"><b>${esc(r.title)}</b>${r.channel ? `<small>${esc(r.channel)}</small>` : ''}</span></${tag}>`;
+}
+// Breites Bild im Quadrat: Mittelpunkt des Gerichts (0-1) in eine Ausschnitt-Position (0-100) umrechnen
+function focusFromCenter(c) {
+  const w = 9 / 16;
+  return Math.max(0, Math.min(100, Math.round((c - w / 2) / (1 - w) * 100)));
 }
 function pickFrame(t, dur) {
   if (t === null || t === undefined || !dur) return 0;
@@ -392,14 +495,12 @@ async function cropDish(dataUrl, box) {
   const img = await loadImg(dataUrl);
   const [y0, x0, y1, x1] = box.map((v) => Math.max(0, Math.min(1000, Number(v) || 0)) / 1000);
   if (y1 <= y0 || x1 <= x0) return null;
-  let x = x0 * img.naturalWidth, y = y0 * img.naturalHeight, w = (x1 - x0) * img.naturalWidth, h = (y1 - y0) * img.naturalHeight;
+  const x = x0 * img.naturalWidth, y = y0 * img.naturalHeight, w = (x1 - x0) * img.naturalWidth, h = (y1 - y0) * img.naturalHeight;
   if (w < 120 || h < 80) return null;
-  const ratio = 16 / 9;
-  if (w / h > ratio) { const nw = h * ratio; x += (w - nw) / 2; w = nw; } else { const nh = w / ratio; y += (h - nh) / 2; h = nh; }
-  const outW = Math.min(960, Math.round(w)), outH = Math.round(outW / ratio);
-  const c = document.createElement('canvas'); c.width = outW; c.height = outH;
-  c.getContext('2d').drawImage(img, x, y, w, h, 0, 0, outW, outH);
-  return c.toDataURL('image/jpeg', 0.8);
+  const s = Math.min(1, 1000 / Math.max(w, h));
+  const c = document.createElement('canvas'); c.width = Math.round(w * s); c.height = Math.round(h * s);
+  c.getContext('2d').drawImage(img, x, y, w, h, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.82);
 }
 
 /* ---------- Datenbank (IndexedDB) ---------- */
@@ -416,6 +517,7 @@ const p = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); 
 async function os(name, mode = 'readonly') { return (await openDb()).transaction(name, mode).objectStore(name); }
 const db = {
   all: async () => p((await os('recipes')).getAll()),
+  one: async (id) => p((await os('recipes')).get(id)),
   put: async (r) => p((await os('recipes', 'readwrite')).put(r)),
   del: async (id) => p((await os('recipes', 'readwrite')).delete(id)),
   get: async (k) => p((await os('kv')).get(k)),
@@ -686,6 +788,65 @@ async function holdScreen() {
   try { return await navigator.wakeLock.request('screen'); } catch (_) { return null; }
 }
 
+/* Bildausschnitt: Gemini zeigt, wo im Vorschaubild das Gericht liegt */
+function resolveThumb(r) {
+  const chain = thumbChain(r.videoId, r.thumb || 0);
+  return chain.reduce((prev, u) => prev.then((hit) => hit || new Promise((res) => {
+    const i = new Image(); i.onload = () => res(i.naturalWidth > 120 ? u : null); i.onerror = () => res(null); i.src = u;
+  })), Promise.resolve(null));
+}
+async function askFocus(urls) {
+  const prompt = `Du bekommst ${urls.length} Vorschaubild(er) von Kochvideos. Bestimme für jedes Bild, wo horizontal die Mitte des Essens liegt (fertiges Gericht oder wichtigste Speise). Ignoriere Personen und eingeblendete Schrift. x = 0 ist der linke Rand, x = 100 der rechte Rand. Ist kein Essen zu sehen, setze null. Antworte nur mit JSON: {"x": [Zahl oder null für jedes Bild, in der Reihenfolge der Bilder]}`;
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${state.settings.apiKey.trim()}`, 'Content-Type': 'application/json', 'HTTP-Referer': location.origin, 'X-Title': 'Rezeptfang' },
+    body: JSON.stringify({
+      model: state.settings.model || DEFAULT_MODEL,
+      messages: [{ role: 'user', content: [{ type: 'text', text: prompt }, ...urls.map((u) => ({ type: 'image_url', image_url: { url: u } }))] }],
+      provider: { only: ['google-ai-studio'], allow_fallbacks: false },
+      response_format: { type: 'json_object' }, temperature: 0, max_tokens: 2000, reasoning: { effort: 'low' },
+    }),
+  });
+  if (!res.ok) throw new Error(apiError(res.status, await res.text()));
+  const j = await res.json();
+  let c = j.choices?.[0]?.message?.content;
+  if (Array.isArray(c)) c = c.map((x) => x.text || '').join('');
+  const xs = parseJson(c || '')?.data?.x;
+  if (!Array.isArray(xs)) throw new Error('Unerwartetes Format');
+  return xs;
+}
+let focusBusy = false;
+async function autoFocus(list) {
+  if (focusBusy || !state.settings.apiKey || !navigator.onLine) return;
+  const todo = list.filter((r) => r.status === 'ok' && r.videoId && !r.focusManual && r.focus === undefined && !r.focusTried);
+  if (!todo.length) return;
+  focusBusy = true;
+  try {
+    const items = [];
+    for (const r of todo) {
+      const u = await resolveThumb(r);
+      if (u) items.push({ id: r.id, u });
+      else { const fresh = await db.one(r.id); if (fresh) { fresh.focusTried = true; await db.put(fresh); } }
+    }
+    for (let k = 0; k < items.length; k += 8) {
+      const batch = items.slice(k, k + 8);
+      let xs = null, giveUp = false;
+      try { xs = await askFocus(batch.map((b) => b.u)); } catch (e) { giveUp = !(e instanceof TypeError); }
+      if (!xs && !giveUp) continue; // offline: beim nächsten Start noch einmal
+      for (let n = 0; n < batch.length; n++) {
+        const fresh = await db.one(batch[n].id);
+        if (!fresh || fresh.focusManual) continue;
+        fresh.focusTried = true;
+        const x = xs ? num(xs[n]) : null;
+        if (x !== null) fresh.focus = focusFromCenter(Math.max(0, Math.min(100, x)) / 100);
+        await db.put(fresh);
+      }
+    }
+    state.recipes = await db.all();
+    if ((location.hash || '#/') === '#/') renderFeed();
+  } finally { focusBusy = false; }
+}
+
 let pendingInput = null;
 function needKey(input) {
   if (state.settings.apiKey) return false;
@@ -774,6 +935,7 @@ async function runImport(input, siblings) {
       });
     }
     await refresh();
+    autoFocus(state.recipes.filter((x) => x.batch === rec.id));
     toast((list.length > 1 ? `${list.length} Rezepte gespeichert.` : `„${list[0].title}“ ist gespeichert.`) + (ai.truncated ? ' Die Antwort war abgeschnitten, eventuell fehlen Rezepte. Tippe auf „Neu einlesen“.' : ''));
   } catch (e) {
     if (backup.length) { await db.del(rec.id); for (const b of backup) await db.put(b); toast(e.message); }
@@ -804,7 +966,7 @@ function useFor(r, use) {
 /* ---------- Ansichten ---------- */
 function setTab(name) {
   document.querySelectorAll('.tabs a').forEach((a) => a.setAttribute('aria-current', a.dataset.tab === name ? 'page' : 'false'));
-  $('#fab').hidden = name !== 'list';
+  $('#fab').hidden = name !== 'list' || state.showFilter;
 }
 function go(h) { if (location.hash === h) render(); else location.hash = h; }
 
@@ -826,20 +988,28 @@ function render() {
   renderFeed();
 }
 
+const filterCount = () => Object.values(state.filter).reduce((n, a) => n + a.length, 0);
+const shownLabel = (n) => (n === 1 ? '1 Rezept anzeigen' : `${n} Rezepte anzeigen`);
+
 function viewList() {
   const ok = state.recipes.filter((r) => r.status === 'ok');
   const present = new Set(ok.flatMap((r) => r.tags || []));
-  const active = Object.entries(state.filter);
-  const cats = Object.keys(TAXONOMY).filter((c) => TAXONOMY[c].some((t) => present.has(t)));
+  const times = ok.map((r) => r.totalTime).filter(Boolean);
+  const cats = Object.keys(TAXONOMY)
+    .map((c) => [c, c === 'Kochdauer' ? TAXONOMY[c].filter((t) => times.some((m) => timeMatch(m, t))) : TAXONOMY[c].filter((t) => present.has(t))])
+    .filter(([, tags]) => tags.length);
+  const n = filterCount();
+  const chevron = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
   return `
   <header class="masthead"><h1 class="wordmark">Rezeptfang<span>${ok.length ? `${ok.length} ${ok.length === 1 ? 'Rezept' : 'Rezepte'} in deiner Sammlung` : 'Rezepte aus Videos, Büchern und Screenshots'}</span></h1></header>
-  ${ok.length ? `<div class="searchbox"><div class="searchrow"><label class="sr" for="q">Suchen</label><input id="q" type="search" placeholder="Gericht oder Zutat suchen" value="${esc(state.q)}" autocomplete="off">
-    ${cats.length ? `<button class="filterbtn" data-act="togglefilter" aria-expanded="${state.showFilter}">Filter${active.length ? ` <b>${active.length}</b>` : ''}</button>` : ''}</div>
-    ${active.length && !state.showFilter ? `<div class="chips">${active.map(([c, t]) => `<button class="chip" data-act="unfilter" data-cat="${esc(c)}" aria-pressed="true">${esc(t)} ×</button>`).join('')}</div>` : ''}
-    ${state.showFilter ? `<div class="fpanel">${cats.map((c) => `<div class="frow"><span class="flabel">${esc(c)}</span><div class="chips">${TAXONOMY[c].filter((t) => present.has(t)).map((t) => `<button class="chip" data-act="filter" data-cat="${esc(c)}" data-tag="${esc(t)}" aria-pressed="${state.filter[c] === t}">${esc(t)}</button>`).join('')}</div></div>`).join('')}
-      <div class="rowbtns">${active.length ? '<button class="btn small ghost" data-act="clearfilter">Filter zurücksetzen</button>' : ''}<button class="btn small" data-act="togglefilter">Fertig</button></div></div>` : ''}
-  </div>` : ''}
-  <div class="feed" id="feed"></div>`;
+  ${ok.length ? `<div class="searchbox"><label class="sr" for="q">Suchen</label><input id="q" type="search" placeholder="Gericht oder Zutat suchen" value="${esc(state.q)}" autocomplete="off"></div>
+  ${cats.length ? `<div class="filterline">
+    <button class="filtertoggle" data-act="togglefilter" aria-expanded="${state.showFilter}">Nach Tags filtern${n ? ` (${n})` : ''}${chevron}</button>
+    ${n ? '<button class="linkbtn" data-act="clearfilter">Zurücksetzen</button>' : ''}
+  </div>
+  ${state.showFilter ? `<div class="fpanel">${cats.map(([c, tags]) => `<div class="frow"><span class="flabel">${esc(c)}</span><div class="chips">${tags.map((t) => `<button class="chip" data-act="filter" data-cat="${esc(c)}" data-tag="${esc(t)}" aria-pressed="${(state.filter[c] || []).includes(t)}">${esc(t)}</button>`).join('')}</div></div>`).join('')}
+    <div class="rowbtns"><button class="btn small primary" id="fshow" data-act="togglefilter">${shownLabel(ok.filter((r) => matches(r, state.q) && passesFilter(r)).length)}</button></div></div>` : ''}` : ''}` : ''}
+  <div class="grid" id="feed"></div>`;
 }
 
 function matches(r, q) {
@@ -847,13 +1017,16 @@ function matches(r, q) {
   const hay = [r.title, r.originalTitle, r.channel, ...(r.tags || []), ...(r.ingredients || []).map((i) => i.name)].join(' ').toLowerCase();
   return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
 }
-const passesFilter = (r) => Object.values(state.filter).every((t) => (r.tags || []).includes(t));
+// Innerhalb einer Kategorie "oder", zwischen Kategorien "und"
+const passesFilter = (r) => Object.entries(state.filter).every(([cat, tags]) => !tags.length
+  || tags.some((t) => (cat === 'Kochdauer' ? timeMatch(r.totalTime, t) : (r.tags || []).includes(t))));
 
 function renderFeed() {
   const feed = $('#feed'); if (!feed) return;
   const list = state.recipes.slice().sort((a, b) => b.createdAt - a.createdAt);
   const pending = list.filter((r) => r.status !== 'ok');
   const shown = list.filter((r) => r.status === 'ok' && matches(r, state.q) && passesFilter(r));
+  const fs = $('#fshow'); if (fs) fs.textContent = shownLabel(shown.length);
   if (!list.length) {
     feed.innerHTML = `<div class="empty"><h2>Noch keine Rezepte.</h2>
       <p>Teile ein Kochvideo aus der YouTube-App, Screenshots eines Rezepts oder Fotos von Kochbuchseiten an Rezeptfang. Zutaten und Schritte landen dann hier.</p>
@@ -868,18 +1041,22 @@ function renderFeed() {
         : `<strong>Import fehlgeschlagen</strong><span>${esc(r.error)}</span>
            <div class="rowbtns"><button class="btn small primary" data-act="retry" data-id="${r.id}">Erneut versuchen</button><button class="btn small ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" data-act="remove" data-id="${r.id}">Entfernen</button></div>`}
       </div></div></div>`).join('');
-  const cards = shown.map((r) => {
-    const tags = (r.tags || []).filter((t) => catOf(t) !== 'Quelle' && catOf(t) !== 'Kochdauer');
-    return `
-    <a class="card" href="#/r/${r.id}">
-      <div class="thumb">${imgTag(r, 'loading="lazy"')}${r.totalTime ? `<span class="badge">${fmtTime(r.totalTime, r.totalTimeEst)}</span>` : ''}</div>
-      <h2>${esc(r.title)}</h2>
-      <p class="meta">${esc(r.channel || { photo: 'Aus Fotos', text: 'Aus Text' }[r.kind] || '')}</p>
-      ${tags.length ? `<div class="minitags">${tags.map((t) => `<span class="minitag">${esc(t)}</span>`).join('')}</div>` : ''}
-    </a>`;
-  }).join('');
-  const none = !shown.length && (state.q || Object.keys(state.filter).length) ? `<div class="empty"><h2>Nichts gefunden.</h2><p>Probier einen anderen Suchbegriff oder setz die Filter zurück.</p></div>` : '';
-  feed.innerHTML = pendingHtml + cards + none;
+  const none = !shown.length && (state.q || filterCount()) ? `<div class="empty"><h2>Nichts gefunden.</h2><p>Probier einen anderen Suchbegriff oder setz die Filter zurück.</p></div>` : '';
+  feed.innerHTML = pendingHtml + shown.map((r) => tileHtml(r)).join('') + none;
+}
+
+/* Menü beim langen Drücken auf eine Kachel */
+function openTileMenu(r) {
+  const img = hasImage(r), mode = tileModeOf(r), wide = !!(r.videoId || r.image);
+  $('#tdbody').innerHTML = `
+    <div class="tdhead"><div class="tdprev">${tileHtml(r, 'div')}</div><h2>${esc(r.title)}</h2></div>
+    <span class="flabel">Kachel zeigt</span>
+    <div class="seg"><button type="button" data-act="tm" data-id="${r.id}" data-v="image" aria-pressed="${mode === 'image'}" ${img ? '' : 'disabled'}>Bild</button><button type="button" data-act="tm" data-id="${r.id}" data-v="title" aria-pressed="${mode === 'title'}">Titelkachel</button></div>
+    ${mode === 'image' && wide ? `<span class="flabel">Bildausschnitt</span>
+    <div class="seg">${[['Links', 0], ['Mitte', 50], ['Rechts', 100]].map(([l, v]) => `<button type="button" data-act="tf" data-id="${r.id}" data-v="${v}" aria-pressed="${focusOf(r) === v}">${l}</button>`).join('')}</div>` : ''}
+    <div class="rowbtns"><a class="btn primary" href="#/r/${r.id}" data-act="tdclose">Rezept öffnen</a><button class="btn ghost" type="button" data-act="tdclose">Schließen</button></div>`;
+  const d = $('#tiledlg');
+  if (!d.open) { d.showModal(); d.dataset.openedAt = Date.now(); }
 }
 
 function stepHtml(r, s, f) {
@@ -909,7 +1086,9 @@ function viewDetail(r) {
   const isVideo = !!r.videoId;
   return `
   <article>
-    <div class="hero">${imgTag(r)}<a class="back" href="#/" aria-label="Zurück zur Übersicht">‹</a></div>
+    ${tileModeOf(r) === 'title'
+      ? `<div class="hero slim" style="--tc:${tileColor(r)[0]}"><a class="back" href="#/" aria-label="Zurück zur Übersicht">‹</a></div>`
+      : `<div class="hero">${imgTag(r)}<a class="back" href="#/" aria-label="Zurück zur Übersicht">‹</a></div>`}
     <h1 class="dtitle">${esc(r.title)}</h1>
     <div class="dmeta">${r.channel ? `<span>${esc(r.channel)}</span>` : ''}${r.totalTime ? `<span>${fmtTime(r.totalTime, r.totalTimeEst)}</span>` : ''}${isVideo ? `<a href="${videoUrl(r.videoId)}" target="_blank" rel="noopener">Video ansehen</a>` : ''}${r.pages?.length ? '<a href="#originale">Originalseiten</a>' : ''}</div>
     ${(r.tags || []).length ? `<div class="tagrow">${r.tags.map((t) => `<span class="minitag">${esc(t)}</span>`).join('')}</div>` : ''}
@@ -964,10 +1143,19 @@ function viewEdit(r) {
       <label class="field"><span>Gesamtzeit (Min.)${r.totalTimeEst ? ' (geschätzt)' : ''}</span><input name="totalTime" type="number" inputmode="numeric" min="0" value="${r.totalTime ?? ''}"></label>
     </div>
 
-    ${thumbOpts.length > 1 ? `<div class="panel"><h3>Vorschaubild</h3>
+    <div class="panel"><h3>Kachel</h3>
+      <div class="kachel">
+        <div class="kprev" id="kprev">${tileHtml(r, 'div')}</div>
+        <div class="kopts">
+          <span class="flabel">Zeigt</span>
+          <div class="seg"><button type="button" data-act="kmode" data-v="image" aria-pressed="${tileModeOf(r) === 'image'}" ${hasImage(r) ? '' : 'disabled'}>Bild</button><button type="button" data-act="kmode" data-v="title" aria-pressed="${tileModeOf(r) === 'title'}">Titel</button></div>
+          ${r.videoId || r.image ? `<label class="flabel" for="kfocus">Bildausschnitt</label><input id="kfocus" type="range" min="0" max="100" step="1" value="${focusOf(r)}">` : ''}
+        </div>
+      </div>
+      ${thumbOpts.length > 1 ? `<div class="group-h">Bild</div>
       ${r.videoId ? '<small style="color:var(--muted)">Das Standardbild des Videos oder eines von drei automatischen Standbildern aus dem Video.</small>' : ''}
-      <div class="thumbpick">${thumbOpts.map((o) => `<button type="button" data-act="thumbpick" data-n="${o.key}" aria-pressed="${o.on}">${o.html}</button>`).join('')}</div>
-    </div>` : ''}
+      <div class="thumbpick">${thumbOpts.map((o) => `<button type="button" data-act="thumbpick" data-n="${o.key}" aria-pressed="${o.on}">${o.html}</button>`).join('')}</div>` : ''}
+    </div>
 
     <div class="panel"><h3>Tags</h3>
       ${Object.entries(TAXONOMY).filter(([cat]) => cat !== 'Kochdauer').map(([cat, tags]) => `<div class="group-h">${esc(cat)}</div><div class="tagpick">${tags.map((t) => `<button type="button" class="chip" data-act="tagtoggle" data-tag="${esc(t)}" aria-pressed="${(r.tags || []).includes(t)}">${esc(t)}</button>`).join('')}</div>`).join('')}
@@ -996,6 +1184,20 @@ function viewEdit(r) {
     </div>
   </form>`;
 }
+function editDraft(f) {
+  const r = state.recipes.find((x) => x.id === f.dataset.id);
+  const d = { ...r, title: f.elements.title.value.trim() || r.title, channel: f.elements.channel.value.trim() };
+  const m = f.querySelector('[data-act="kmode"][aria-pressed="true"]'); if (m) d.tileMode = m.dataset.v;
+  const fr = f.querySelector('#kfocus'); if (fr) d.focus = +fr.value;
+  const tp = f.querySelector('.thumbpick [aria-pressed="true"]');
+  if (tp) {
+    const k = tp.dataset.n;
+    if (k[0] === 'v') { d.thumb = +k.slice(1); d.image = null; } else if (k[0] === 'p') { d.image = null; d.coverPage = +k.slice(1); }
+  }
+  return d;
+}
+function updatePreview() { const f = $('#editform'); if (f) $('#kprev').innerHTML = tileHtml(editDraft(f), 'div'); }
+
 function ingRow(i) {
   return `<div class="ed-ing" data-iid="${esc(i.id)}" data-est="${i.est ? 1 : ''}" data-orig="${i.amount ?? ''}">
     <input aria-label="Menge" data-f="amount" inputmode="decimal" value="${i.amount ?? ''}" ${i.est ? 'style="border-style:dashed"' : ''}>
@@ -1068,14 +1270,23 @@ document.addEventListener('click', async (e) => {
   const act = el.dataset.act, id = el.dataset.id;
   const r = id ? state.recipes.find((x) => x.id === id) : null;
   switch (act) {
-    case 'togglefilter': state.showFilter = !state.showFilter; render(); break;
+    case 'togglefilter': state.showFilter = !state.showFilter; rerenderKeepScroll(); break;
     case 'filter': {
       const c = el.dataset.cat, t = el.dataset.tag;
-      if (state.filter[c] === t) delete state.filter[c]; else state.filter[c] = t;
-      render(); break;
+      const arr = state.filter[c] || (state.filter[c] = []);
+      const i = arr.indexOf(t);
+      if (i >= 0) arr.splice(i, 1); else arr.push(t);
+      if (!arr.length) delete state.filter[c];
+      rerenderKeepScroll(); break;
     }
-    case 'unfilter': delete state.filter[el.dataset.cat]; render(); break;
-    case 'clearfilter': state.filter = {}; render(); break;
+    case 'clearfilter': state.filter = {}; rerenderKeepScroll(); break;
+    case 'tm': case 'tf': {
+      if (!r) break;
+      if (act === 'tm') r.tileMode = el.dataset.v; else { r.focus = +el.dataset.v; r.focusManual = true; }
+      await db.put(r); openTileMenu(r); renderFeed(); break;
+    }
+    case 'tdclose': $('#tiledlg').close(); break;
+    case 'kmode': el.parentElement.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === el))); updatePreview(); break;
     case 'retry': {
       if (!r) break;
       if (r.kind === 'youtube' && r.videoId) { await db.del(r.id); state.recipes = state.recipes.filter((x) => x.id !== r.id); startImport(videoUrl(r.videoId)); }
@@ -1110,7 +1321,7 @@ document.addEventListener('click', async (e) => {
       if (on && catOf(t) !== 'Ernährung') el.parentElement.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', 'false'));
       el.setAttribute('aria-pressed', String(on)); break;
     }
-    case 'thumbpick': el.parentElement.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === el))); break;
+    case 'thumbpick': el.parentElement.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === el))); updatePreview(); break;
     case 'adding': $('#eding').insertAdjacentHTML('beforeend', ingRow({ id: 'n' + uid(), amount: null, unit: '', name: '' })); break;
     case 'deling': el.closest('.ed-ing').remove(); break;
     case 'check': {
@@ -1126,6 +1337,8 @@ document.addEventListener('click', async (e) => {
 
 document.addEventListener('input', (e) => {
   if (e.target.id === 'q') { state.q = e.target.value; renderFeed(); }
+  if (e.target.id === 'kfocus') { e.target.dataset.touched = 1; updatePreview(); }
+  if (e.target.form?.id === 'editform' && (e.target.name === 'title' || e.target.name === 'channel')) updatePreview();
 });
 
 document.addEventListener('change', async (e) => {
@@ -1161,12 +1374,20 @@ document.addEventListener('submit', async (e) => {
     const tt = num(el.totalTime.value);
     if (tt !== r.totalTime) r.totalTimeEst = false;
     r.totalTime = tt && tt > 0 ? tt : null;
+    const imgKey = () => `${r.thumb || 0}|${r.image ? 'i' : ''}|${r.coverPage || 0}`;
+    const before = imgKey();
     const tp = f.querySelector('.thumbpick [aria-pressed="true"]');
     if (tp) {
       const k = tp.dataset.n;
       if (k[0] === 'v') { r.thumb = +k.slice(1); r.image = null; }
       else if (k[0] === 'p') { r.image = null; r.coverPage = +k.slice(1); }
     }
+    const km = f.querySelector('[data-act="kmode"][aria-pressed="true"]');
+    if (km) r.tileMode = km.dataset.v;
+    const kf = f.querySelector('#kfocus');
+    let refocus = false;
+    if (kf && kf.dataset.touched) { r.focus = +kf.value; r.focusManual = true; }
+    else if (before !== imgKey()) { delete r.focus; r.focusTried = false; r.focusManual = false; refocus = !!r.videoId; }
     const picked = [...f.querySelectorAll('.tagpick .chip[aria-pressed="true"]')].map((c) => c.dataset.tag);
     const tTag = timeTag(r.totalTime);
     r.tags = ALL_TAGS.filter((t) => picked.includes(t) || t === tTag);
@@ -1183,6 +1404,7 @@ document.addEventListener('submit', async (e) => {
     r.tips = el.tips.value.trim();
     delete state.servings[r.id];
     await db.put(r); await refresh(); go(`#/r/${r.id}`); toast('Gespeichert.');
+    if (refocus) autoFocus([r]);
   }
   if (f.id === 'shopadd') {
     e.preventDefault();
@@ -1202,8 +1424,50 @@ function nextThumb(img) {
 }
 document.addEventListener('load', (e) => {
   const img = e.target;
-  if (img.tagName === 'IMG' && img.classList.contains('yt') && img.naturalWidth <= 120) nextThumb(img);
+  if (img.tagName !== 'IMG' || !img.classList.contains('yt')) return;
+  if (img.naturalWidth <= 120) { nextThumb(img); return; }
+  // sd- und hq-Bilder sind 4:3 mit schwarzen Balken oben und unten, in den Kacheln werden diese weggeschnitten
+  img.classList.toggle('lb', img.naturalWidth / img.naturalHeight < 1.5);
 }, true);
+
+/* Langes Drücken auf eine Kachel öffnet das Kachel-Menü */
+let lp = null, suppressClick = false;
+function openTileMenuById(id) {
+  if ($('#tiledlg').open) return;
+  const r = state.recipes.find((x) => x.id === id);
+  if (!r) return;
+  suppressClick = true; setTimeout(() => { suppressClick = false; }, 900);
+  if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
+  openTileMenu(r);
+}
+document.addEventListener('contextmenu', (e) => {
+  const t = e.target.closest('a.tile[data-id]');
+  if (!t) return;
+  e.preventDefault();
+  if (lp) { clearTimeout(lp.timer); lp = null; }
+  openTileMenuById(t.dataset.id);
+});
+document.addEventListener('pointerdown', (e) => {
+  const t = e.target.closest('a.tile[data-id]');
+  if (!t || e.button > 0) return;
+  if (lp) clearTimeout(lp.timer);
+  lp = { x: e.clientX, y: e.clientY, timer: setTimeout(() => { lp = null; openTileMenuById(t.dataset.id); }, 550) };
+}, { passive: true });
+document.addEventListener('pointermove', (e) => {
+  if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 10) { clearTimeout(lp.timer); lp = null; }
+}, { passive: true });
+for (const ev of ['pointerup', 'pointercancel', 'scroll']) document.addEventListener(ev, () => { if (lp) { clearTimeout(lp.timer); lp = null; } }, { passive: true });
+document.addEventListener('click', (e) => {
+  if (suppressClick && e.target.closest('a.tile')) { e.preventDefault(); e.stopPropagation(); suppressClick = false; }
+}, true);
+/* Dialoge schließen bei Tipp neben den Dialog */
+for (const d of [$('#tiledlg'), $('#adddlg')]) {
+  d.addEventListener('click', (e) => {
+    if (e.target !== d || Date.now() - (+d.dataset.openedAt || 0) < 700) return;
+    const b = d.getBoundingClientRect();
+    if (e.clientX < b.left || e.clientX > b.right || e.clientY < b.top || e.clientY > b.bottom) d.close();
+  });
+}
 document.addEventListener('error', (e) => {
   const img = e.target;
   if (img.tagName === 'IMG' && img.classList.contains('yt')) nextThumb(img);
@@ -1291,6 +1555,12 @@ window.addEventListener('hashchange', render);
       else if (it.text) await startImport(it.text);
     }
   } else if (legacy) startImport(legacy);
+  // Bildausschnitt für bestehende Rezepte einmalig bestimmen
+  setTimeout(() => autoFocus(state.recipes), 2500);
+  if (state.recipes.some((r) => r.status === 'ok') && !(await db.get('hintTile'))) {
+    await db.set('hintTile', 1);
+    setTimeout(() => toast('Tipp: Lange auf eine Kachel drücken, um Bildausschnitt oder Titelkachel zu wählen.'), 1500);
+  }
 })();
 </script>
 </body>
