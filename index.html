@@ -9,7 +9,12 @@
 <link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Courier+Prime:wght@400;700&family=Archivo+Narrow:wght@500;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  // Aussehen: Karteikasten (Standard) oder Klassisch
+  try { document.documentElement.dataset.design = localStorage.getItem('rg-design') === 'klassisch' ? 'klassisch' : 'kartei'; }
+  catch (e) { document.documentElement.dataset.design = 'kartei'; }
+</script>
 <style>
 :root{
   --bg:#F1F3EE; --surface:#FFFFFF; --ink:#1C2620; --muted:#636D66; --line:#DBE0D8;
@@ -230,11 +235,11 @@ dialog p{color:var(--muted);margin:0 0 14px}
 .seg button:disabled{opacity:.4;cursor:default}
 .tdhead{display:flex;gap:14px;align-items:center;margin-bottom:16px}
 .tdhead h2{font-size:20px;line-height:1.15;margin:0}
-.tdprev{width:104px;height:104px;flex:none;overflow:hidden}
-.tdprev .tile{width:172px;transform:scale(.6047);transform-origin:0 0}
+.tdprev{width:104px;flex:none}
+.tdprev .tile{width:172px;zoom:.6047}
 .kachel{display:flex;gap:16px;align-items:flex-start;margin:8px 0 6px}
-.kprev{width:128px;height:128px;flex:none;overflow:hidden}
-.kprev .tile{width:172px;transform:scale(.7442);transform-origin:0 0}
+.kprev{width:128px;flex:none}
+.kprev .tile{width:172px;zoom:.7442}
 .kopts{flex:1;min-width:0}
 .kopts input[type=range]{width:100%;accent-color:var(--herb);margin:8px 0 0}
 /* Vorschaubild aus Screenshot wählen */
@@ -248,6 +253,83 @@ dialog p{color:var(--muted);margin:0 0 14px}
 .csrc button[aria-pressed="true"]{border-color:var(--saffron)}
 .csrc img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
 .cropzoom{width:100%;accent-color:var(--herb);margin:4px 0 10px}
+
+/* ===================== Aussehen: Karteikasten ===================== */
+.tile .tab,.tile .tape{display:none}
+html[data-design="kartei"]{
+  color-scheme:light;
+  --bg:#D7DED9; --surface:#FFFDF9; --ink:#1D1F1E; --muted:#5B615D; --line:#C7D0CA;
+  --herb:#2E5A8C; --herb-ink:#FFFFFF; --herb-soft:#E3EAF2;
+  --saffron:#B6403A; --saffron-soft:#F6E27A; --saffron-ink:#1D1F1E; --danger:#B6403A;
+  --display:"Work Sans", system-ui, sans-serif; --read:"Courier Prime", ui-monospace, monospace;
+  --type:"Courier Prime", ui-monospace, monospace; --tape:"Archivo Narrow", system-ui, sans-serif;
+}
+html[data-design="kartei"] body{font-family:var(--display)}
+/* Kopf: Prägeband */
+[data-design="kartei"] .masthead{padding:26px 0 40px}
+[data-design="kartei"] .wordmark{position:relative;display:inline-block;background:#1D1F1E;color:#F4F4F0;font-family:var(--tape);font-weight:700;font-size:30px;letter-spacing:6px;text-transform:uppercase;padding:8px 16px 8px 20px;border-radius:4px;transform:rotate(-1.5deg);box-shadow:0 2px 0 #000;line-height:1}
+[data-design="kartei"] .wordmark span{position:absolute;left:2px;top:calc(100% + 12px);white-space:nowrap;color:var(--ink);font-family:var(--type);font-weight:400;font-size:13px;letter-spacing:0;text-transform:none;transform:rotate(1.5deg);margin:0}
+[data-design="kartei"] .pagetitle{display:inline-block;background:#1D1F1E;color:#F4F4F0;font-family:var(--tape);font-weight:700;letter-spacing:4px;text-transform:uppercase;font-size:24px;padding:8px 14px;border-radius:4px;transform:rotate(-1deg);box-shadow:0 2px 0 #000;margin-bottom:14px}
+[data-design="kartei"] .searchbox input{border:0;border-bottom:2px solid #E39B9B;border-radius:6px;font-family:var(--type);background:var(--surface)}
+[data-design="kartei"] .filtertoggle{background:var(--herb);color:#FFFFFF;border:0;border-radius:3px;font-family:var(--tape);font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:14px;padding:10px 12px 10px 14px}
+[data-design="kartei"] .filtertoggle[aria-expanded="true"]{background:#1D1F1E;color:#F4F4F0}
+[data-design="kartei"] .fpanel,[data-design="kartei"] .panel,[data-design="kartei"] dialog{border-radius:6px;border:0;box-shadow:0 1px 0 #B9C1BB,0 6px 14px rgba(30,40,34,.12)}
+[data-design="kartei"] .chip{border-radius:3px;border:1.5px dashed #6E7570;font-family:var(--tape);font-weight:600;letter-spacing:.5px}
+[data-design="kartei"] .chip[aria-pressed="true"]{background:#1D1F1E;color:#F4F4F0;border:1.5px solid #1D1F1E}
+[data-design="kartei"] .flabel,[data-design="kartei"] .section-h,[data-design="kartei"] .group-h{font-family:var(--tape);text-transform:uppercase;letter-spacing:2px}
+[data-design="kartei"] .btn{border-radius:3px;font-family:var(--tape);font-weight:700;letter-spacing:1px}
+[data-design="kartei"] .btn.ghost{border:1.5px solid #6E7570}
+[data-design="kartei"] .seg button{border-radius:3px;font-family:var(--tape);letter-spacing:.5px}
+[data-design="kartei"] .fab{background:#1D1F1E;color:#F4F4F0;border-radius:4px;font-family:var(--tape);font-weight:700;letter-spacing:4px;box-shadow:0 3px 0 #000}
+[data-design="kartei"] .tabs{font-family:var(--type)}
+[data-design="kartei"] .tabs a[aria-current="page"] span,[data-design="kartei"] .tabs a[aria-current="page"]{text-decoration:underline;text-decoration-color:#E39B9B;text-underline-offset:5px;text-decoration-thickness:2px}
+[data-design="kartei"] .shop{background:var(--surface);border-radius:6px;padding:2px 14px;box-shadow:0 1px 0 #B9C1BB}
+[data-design="kartei"] .shop label{font-family:var(--type)}
+/* Kacheln als Karteikarten */
+[data-design="kartei"] .grid{gap:28px 12px;padding-top:18px}
+[data-design="kartei"] .tile:not(.cropvp){aspect-ratio:auto;overflow:visible;background:var(--surface);color:var(--ink);border-radius:4px;padding:10px 10px 12px;box-shadow:0 1px 0 #B9C1BB,0 6px 14px rgba(30,40,34,.12);transform:rotate(-.8deg)}
+[data-design="kartei"] .grid .tile:nth-child(even){transform:rotate(.9deg)}
+[data-design="kartei"] .grid .tile:nth-child(3n){transform:rotate(.35deg)}
+[data-design="kartei"] .tile:not(.cropvp)::after{display:none}
+[data-design="kartei"] .tile:not(.cropvp) img{position:relative;inset:auto;display:block;width:100%;height:auto;aspect-ratio:16/9;border-radius:2px;transform:none}
+[data-design="kartei"] .tile:not(.cropvp) .tape{display:block;position:absolute;top:2px;left:50%;width:46px;height:16px;margin-left:-23px;background:rgba(240,232,200,.88);transform:rotate(-4deg);z-index:3}
+[data-design="kartei"] .tile:not(.cropvp) .tab{display:block;position:absolute;top:-16px;left:10px;max-width:calc(100% - 20px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--tc,#4A5862);color:#FFFFFF;font-family:var(--tape);font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:3px 9px 6px;border-radius:4px 4px 0 0}
+[data-design="kartei"] .tile:not(.cropvp) .cap{position:static;padding:9px 0 0;color:var(--ink);gap:5px}
+[data-design="kartei"] .tile:not(.cropvp) .cap b{font-family:var(--type);font-size:14px;line-height:1.2;font-weight:700}
+[data-design="kartei"] .tile:not(.cropvp) .cap small{font-size:11px;color:var(--muted);opacity:1;border-top:1px solid #C7D7E6;padding-top:5px}
+[data-design="kartei"] .tile:not(.cropvp) .src{top:16px;left:16px;background:rgba(29,31,30,.6);color:#FFFFFF}
+[data-design="kartei"] .tile.tt:not(.cropvp) .src{top:10px;left:8px;background:transparent;color:var(--muted)}
+[data-design="kartei"] .tile:not(.cropvp) .tbadge{top:12px;bottom:auto;right:12px;width:42px;height:42px;padding:0;border-radius:50%;border:2px solid #B6403A;background:rgba(255,253,249,.92);color:#B6403A;font-family:var(--tape);font-size:10px;line-height:1.05;white-space:normal;text-align:center;display:flex;align-items:center;justify-content:center;transform:rotate(-12deg)}
+[data-design="kartei"] .tile.tt:not(.cropvp){background:var(--surface);color:var(--ink)}
+[data-design="kartei"] .tile.tt:not(.cropvp) .cap{padding-top:22px;min-height:96px;justify-content:flex-end}
+[data-design="kartei"] .tile.tt:not(.cropvp) .cap b{font-size:18px;-webkit-line-clamp:5}
+/* Rezept als Karteikarte */
+[data-design="kartei"] article{position:relative;background-color:var(--surface);background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 27px,#D3E0EC 27px,#D3E0EC 28px);border-radius:6px;padding:16px 14px 20px 34px;margin:12px -6px 24px;box-shadow:0 1px 0 #B9C1BB,0 6px 14px rgba(30,40,34,.12)}
+[data-design="kartei"] article::before{content:"";position:absolute;left:22px;top:0;bottom:0;width:1.5px;background:#E39B9B}
+[data-design="kartei"] .hero{margin:4px 0 0 -18px;border:8px solid #FFFFFF;border-radius:3px;transform:rotate(-1.2deg);box-shadow:0 8px 18px rgba(30,40,34,.22);overflow:visible}
+[data-design="kartei"] .hero::before{content:"";position:absolute;top:-16px;left:42%;width:72px;height:22px;background:rgba(240,232,200,.88);transform:rotate(3deg);z-index:2}
+[data-design="kartei"] .hero img{display:block;width:100%;height:100%;object-fit:cover}
+[data-design="kartei"] .hero.slim{height:64px;border:0;transform:none;box-shadow:none;margin:0 0 0 -18px;background:transparent}
+[data-design="kartei"] .hero.slim::before{display:none}
+[data-design="kartei"] .back{top:8px;left:8px;width:auto;height:auto;padding:8px 12px;border-radius:3px;background:#1D1F1E;font-family:var(--tape);font-weight:700;font-size:13px;letter-spacing:2px}
+[data-design="kartei"] .back::after{content:"KASTEN";margin-left:6px}
+[data-design="kartei"] .dtitle{font-family:var(--type);font-weight:700;font-size:26px;letter-spacing:0;line-height:1.1}
+[data-design="kartei"] .dmeta{font-size:13px}
+[data-design="kartei"] .section-h{font-size:14px;color:var(--muted);margin:26px 0 4px}
+[data-design="kartei"] .minitag{background:#1D1F1E;color:#F4F4F0;font-family:var(--tape);font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;border-radius:2px;padding:3px 8px}
+[data-design="kartei"] .notice{background:#F6E27A;color:#1D1F1E;border-radius:2px;font-family:var(--type);font-size:14px;transform:rotate(-.6deg);box-shadow:0 4px 10px rgba(30,40,34,.15)}
+[data-design="kartei"] .servings{background:transparent;border:0;padding:0;font-family:var(--type)}
+[data-design="kartei"] .servings button{background:transparent;border:1.5px solid #1D1F1E;border-radius:3px;width:44px;height:44px}
+[data-design="kartei"] .servings .val strong{font-family:var(--type);font-size:24px}
+[data-design="kartei"] .ings li{border-bottom:0;padding:0;line-height:28px;font-family:var(--type);font-size:15px;grid-template-columns:84px 1fr}
+[data-design="kartei"] .ings .missing{background:transparent;color:#B6403A;border:1px solid #B6403A;font-family:var(--tape)}
+[data-design="kartei"] .steps li{border-bottom:0;padding:6px 0;grid-template-columns:28px 1fr}
+[data-design="kartei"] .steps li::before{font-family:var(--type);color:#B6403A;font-size:17px;line-height:28px}
+[data-design="kartei"] .steps p{font-family:var(--type);font-size:15.5px;line-height:28px}
+[data-design="kartei"] .ing{background:#F6E27A;color:#1D1F1E;font-family:var(--type);font-weight:700;font-size:15px;border-radius:1px}
+[data-design="kartei"] .ing.est{background:transparent;border:1.5px dashed #B6403A}
+[data-design="kartei"] .tips{background:transparent;border-left:3px solid #B6403A;border-radius:0;font-family:var(--type);font-size:15px}
+[data-design="kartei"] .ts{font-family:var(--tape);letter-spacing:.5px;color:var(--herb)}
 </style>
 </head>
 <body>
@@ -296,7 +378,7 @@ dialog p{color:var(--muted);margin:0 0 14px}
 <script>
 'use strict';
 /* ---------- Konstanten ---------- */
-const APP_VERSION = '2.6 vom 22.10.2026';
+const APP_VERSION = '2.7 vom 22.10.2026';
 const DEFAULT_MODEL = 'google/gemini-3.8-flash';
 const TAXONOMY = {
   Quelle: ['Youtube', 'Buch', 'Zeitung', 'Blog'],
@@ -437,7 +519,8 @@ function tileHtml(r, tag = 'a') {
   const mode = tileModeOf(r);
   const [bg, fg] = tileColor(r);
   const attrs = tag === 'a' ? `href="#/r/${r.id}" data-id="${r.id}" draggable="false"` : '';
-  return `<${tag} class="tile${mode === 'title' ? ' tt' : ''}" ${attrs}${mode === 'title' ? ` style="--tc:${bg};--tf:${fg}"` : ''}>${mode === 'image' ? imgTag(r, tag === 'a' ? 'loading="lazy"' : '') : ''}${tileChrome(r)}</${tag}>`;
+  const tab = (r.tags || []).find((t) => catOf(t) === 'Gang') || (r.tags || []).find((t) => catOf(t) === 'Hauptzutat') || 'Rezept';
+  return `<${tag} class="tile${mode === 'title' ? ' tt' : ''}" ${attrs} style="--tc:${bg};--tf:${fg}"><span class="tab">${esc(tab)}</span>${mode === 'image' ? `${imgTag(r, tag === 'a' ? 'loading="lazy"' : '')}<span class="tape"></span>` : ''}${tileChrome(r)}</${tag}>`;
 }
 function tileChrome(r) {
   const [icon, label] = sourceOf(r);
@@ -1527,6 +1610,10 @@ function viewSettings() {
     <div class="status" id="keystatus"></div>
   </form>
   <div class="panel">
+    <h3>Aussehen</h3>
+    <div class="seg"><button type="button" data-act="design" data-v="kartei" aria-pressed="${designOf() === 'kartei'}">Karteikasten</button><button type="button" data-act="design" data-v="klassisch" aria-pressed="${designOf() === 'klassisch'}">Klassisch</button></div>
+  </div>
+  <div class="panel">
     <h3>Hintergrund-Import</h3>
     <p class="sub" style="margin:4px 0 12px">${useWorker() ? 'Importe laufen weiter, wenn du die App verlässt.' : 'In dieser Umgebung laufen Importe nur, solange die App offen ist.'} ${'Notification' in window ? (Notification.permission === 'granted' ? 'Wenn die App im Hintergrund ist, bekommst du eine Benachrichtigung, sobald ein Rezept fertig ist.' : 'Auf Wunsch meldet sich ReciGrab, sobald ein Rezept im Hintergrund fertig ist.') : ''}</p>
     ${'Notification' in window && Notification.permission !== 'granted' && useWorker() ? `<button class="btn" data-act="notify">${Notification.permission === 'denied' ? 'Benachrichtigungen sind blockiert' : 'Benachrichtigungen erlauben'}</button>` : ''}
@@ -1614,6 +1701,7 @@ document.addEventListener('click', async (e) => {
     case 'clearchecked': state.shopping = state.shopping.filter((i) => !i.checked); await db.set('shopping', state.shopping); updateShopCount(); render(); break;
     case 'clearall': if (confirm('Ganze Einkaufsliste leeren?')) { state.shopping = []; await db.set('shopping', []); updateShopCount(); render(); } break;
     case 'testkey': testKey(); break;
+    case 'design': setDesign(el.dataset.v); render(); toast(el.dataset.v === 'kartei' ? 'Aussehen: Karteikasten.' : 'Aussehen: Klassisch.'); break;
     case 'notify':
       if (Notification.permission === 'denied') toast('Benachrichtigungen sind für ReciGrab blockiert. Erlauben kannst du sie in den Android-Einstellungen der App.');
       else { await Notification.requestPermission(); render(); }
@@ -1782,6 +1870,16 @@ async function toggleWake() {
 document.addEventListener('visibilitychange', async () => {
   if (!document.hidden && state.wake) { try { state.wake = await navigator.wakeLock.request('screen'); } catch (_) {} }
 });
+
+/* Aussehen */
+const designOf = () => document.documentElement.dataset.design || 'kartei';
+function setDesign(v) {
+  document.documentElement.dataset.design = v;
+  try { localStorage.setItem('rg-design', v); } catch (_) {}
+  applyDesignTexts();
+}
+function applyDesignTexts() { $('#fab').textContent = designOf() === 'kartei' ? '+ GRAB' : '+ Rezept holen'; }
+applyDesignTexts();
 
 /* Schlüssel prüfen */
 async function testKey() {
