@@ -391,11 +391,13 @@ async function askModel(url) {
     provider: { only: ['google-ai-studio'], allow_fallbacks: false },
     response_format: { type: 'json_object' },
     temperature: 0.2,
+    max_tokens: 32000,
+    reasoning: { effort: 'low' },
     usage: { include: true },
   };
   const send = async () => {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 240000);
+    const timer = setTimeout(() => ctrl.abort(), 420000);
     try {
       return await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST', signal: ctrl.signal,
@@ -408,7 +410,7 @@ async function askModel(url) {
         body: JSON.stringify(body),
       });
     } catch (e) {
-      throw new Error(e.name === 'AbortError' ? 'Keine Antwort nach 4 Minuten. Versuch es noch einmal.' : 'Keine Verbindung zu OpenRouter. Bist du online?');
+      throw new Error(e.name === 'AbortError' ? 'Keine Antwort nach 7 Minuten. Versuch es noch einmal.' : 'Verbindung abgebrochen. Bist du online? Bleib während des Imports in Rezeptfang, Android unterbricht die App sonst manchmal.');
     } finally { clearTimeout(timer); }
   };
   let res = await send();
@@ -422,15 +424,34 @@ async function askModel(url) {
   if (j.error) throw new Error(apiError(j.error.code || 500, JSON.stringify(j)));
   let content = j.choices?.[0]?.message?.content;
   if (Array.isArray(content)) content = content.map((c) => c.text || '').join('');
-  if (!content) throw new Error('Das Modell hat leer geantwortet. Versuch es noch einmal.');
-  return { data: parseJson(content), cost: j.usage?.cost ?? null };
+  const finish = j.choices?.[0]?.finish_reason || j.choices?.[0]?.native_finish_reason || '';
+  if (!content) throw new Error(`Das Modell hat leer geantwortet${finish ? ` (${finish})` : ''}. Versuch es noch einmal.`);
+  const parsed = parseJson(content);
+  if (!parsed) throw new Error(`Die Antwort des Modells war kein gültiges Rezept-Format${/length|max/i.test(finish) ? ', sie wurde abgeschnitten' : ''}. Versuch es noch einmal.`);
+  return { data: parsed.data, cost: j.usage?.cost ?? null, truncated: parsed.salvaged };
 }
 
 function parseJson(txt) {
-  let s = String(txt).trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
-  const a = s.indexOf('{'), b = s.lastIndexOf('}');
-  if (a >= 0 && b > a) s = s.slice(a, b + 1);
-  try { return JSON.parse(s); } catch (_) { throw new Error('Die Antwort des Modells war kein gültiges Rezept-Format. Versuch es noch einmal.'); }
+  let s = String(txt).trim().replace(/^```(?:json)?/i, '').replace(/```\s*$/, '').trim();
+  const a = s.indexOf('{');
+  if (a < 0) return null;
+  s = s.slice(a);
+  const b = s.lastIndexOf('}');
+  try { return { data: JSON.parse(s.slice(0, b + 1)), salvaged: false }; } catch (_) {}
+  // Abgeschnittene Antwort: alle vollständig gelieferten Rezepte retten
+  const k = s.search(/"recipes"\s*:\s*\[/);
+  if (k < 0) return null;
+  const start = s.indexOf('[', k);
+  let depth = 0, inStr = false, escNext = false, lastEnd = -1;
+  for (let i = start; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) { if (escNext) escNext = false; else if (c === '\\') escNext = true; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true;
+    else if (c === '{' || c === '[') depth++;
+    else if (c === '}' || c === ']') { depth--; if (depth === 1 && c === '}') lastEnd = i; if (depth === 0) break; }
+  }
+  if (lastEnd < 0) return null;
+  try { return { data: JSON.parse(s.slice(0, lastEnd + 1) + ']}'), salvaged: true }; } catch (_) { return null; }
 }
 
 async function oembed(url) {
@@ -540,7 +561,7 @@ async function startImport(raw, force = false) {
       await db.put({ ...list[k], id: k ? 'r' + Date.now().toString(36) + uid() : rec.id, videoId: vid, createdAt: createdAt - k, status: 'ok', importedAt: Date.now(), cost, part: list.length > 1 ? k + 1 : 0, partsTotal: list.length });
     }
     await refresh();
-    toast(list.length > 1 ? `${list.length} Rezepte aus dem Video gespeichert.` : `„${list[0].title}“ ist gespeichert.`);
+    toast((list.length > 1 ? `${list.length} Rezepte aus dem Video gespeichert.` : `„${list[0].title}“ ist gespeichert.`) + (ai.truncated ? ' Die Antwort war abgeschnitten, eventuell fehlen Rezepte. Tippe auf „Neu einlesen“.' : ''));
   } catch (e) {
     if (backup.length) { await db.del(rec.id); for (const b of backup) await db.put(b); toast(e.message); }
     else { rec.status = 'error'; rec.error = e.message; await db.put(rec); }
@@ -803,7 +824,7 @@ function viewSettings() {
     <div class="rowbtns"><button class="btn" data-act="export">Sicherung speichern</button><label class="btn ghost" for="importfile">Sicherung laden</label><input type="file" id="importfile" accept="application/json,.json" hidden></div>
     <div class="status" id="backupstatus"></div>
   </div>
-  <p class="sub" style="font-size:13px">${state.recipes.filter((r) => r.status === 'ok').length} Rezepte gespeichert. Rezeptfang Version 1.2 vom 22.10.2026.</p>`;
+  <p class="sub" style="font-size:13px">${state.recipes.filter((r) => r.status === 'ok').length} Rezepte gespeichert. Rezeptfang Version 1.3 vom 22.10.2026.</p>`;
 }
 
 /* ---------- Ereignisse ---------- */
