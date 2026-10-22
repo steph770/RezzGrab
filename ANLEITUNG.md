@@ -3,11 +3,11 @@
 ## 1. Auf GitHub Pages hochladen (am PC, ca. 5 Minuten)
 
 1. Auf github.com einloggen, oben rechts **+ > New repository**.
-2. Name: `rezeptfang`, Sichtbarkeit **Public** (GitHub Pages ist im Gratis-Konto nur für öffentliche Repositories verfügbar). Im Code steht nichts Geheimes, dein Schlüssel bleibt am Handy.
+2. Name: `recigrab`, Sichtbarkeit **Public** (GitHub Pages ist im Gratis-Konto nur für öffentliche Repositories verfügbar). Im Code steht nichts Geheimes, dein Schlüssel bleibt am Handy.
 3. **Create repository**, dann auf **uploading an existing file** klicken.
 4. Alle Dateien aus dem ZIP hineinziehen: `index.html`, `manifest.webmanifest`, `sw.js`, `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`. Unten **Commit changes**.
 5. Im Repository **Settings > Pages**: bei *Source* „Deploy from a branch“, Branch `main`, Ordner `/ (root)`, **Save**.
-6. Nach ein bis zwei Minuten ist die App erreichbar unter `https://DEIN-GITHUB-NAME.github.io/rezeptfang/`.
+6. Nach ein bis zwei Minuten ist die App erreichbar unter `https://DEIN-GITHUB-NAME.github.io/recigrab/`.
 
 ## 2. Am Handy installieren
 
