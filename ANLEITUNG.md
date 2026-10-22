@@ -26,7 +26,7 @@
 - **YouTube:** YouTube-App > Video > **Teilen** > **Rezeptfang**.
 - **Screenshots und Fotos:** Bilder in der Galerie auswählen > **Teilen** > **Rezeptfang**. Bis zu 6 Bilder pro Rezept, z. B. zwei Kochbuchseiten oder mehrere Screenshots aus der NYT-App.
 - **Text:** In der App auf **+ Rezept holen** > **Text einfügen**.
-- Der Import dauert je nach Länge 20 Sekunden bis einige Minuten. Lass die App dabei offen.
+- Der Import dauert je nach Länge 20 Sekunden bis einige Minuten. In der über Chrome installierten App läuft er im Hintergrund weiter, du kannst also zurück zu YouTube wechseln. Unter **Einstellungen > Hintergrund-Import** kannst du Benachrichtigungen erlauben, dann meldet sich Rezeptfang, wenn ein Rezept fertig ist. In Hermit muss die App offen bleiben.
 - **Kacheln anpassen:** Lange auf eine Kachel drücken, dann Bild oder Titelkachel wählen und den Bildausschnitt verschieben. Feiner geht der Ausschnitt unter **Bearbeiten**.
 - **Vorschaubild aus Screenshot:** Bei Rezepten aus Screenshots oder Fotos über das Kachel-Menü oder unter **Bearbeiten** „Vorschaubild aus Screenshot wählen“. Den Screenshot mit dem Finger verschieben und mit zwei Fingern zoomen, bis das Gericht im Quadrat sitzt.
 - **Filtern:** „Nach Tags filtern“ öffnet die Tags. Innerhalb einer Kategorie gilt „oder“, zwischen Kategorien „und“.
