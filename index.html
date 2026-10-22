@@ -381,7 +381,9 @@ function apiError(status, text) {
   return (map[status] || `Fehler ${status}.`) + (msg ? ` (${msg})` : '');
 }
 
-async function askModel(url) {
+const DROP_MSG = 'Die Verbindung ist während des Imports abgerissen. Bleib in Rezeptfang und lass den Bildschirm an, bis die Karte fertig ist, dann noch einmal versuchen.';
+
+async function askModel(url, onProgress = () => {}) {
   const body = {
     model: state.settings.model || DEFAULT_MODEL,
     messages: [
@@ -394,41 +396,68 @@ async function askModel(url) {
     max_tokens: 32000,
     reasoning: { effort: 'low' },
     usage: { include: true },
+    stream: true,
   };
-  const send = async () => {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 420000);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 600000);
+  const send = () => fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST', signal: ctrl.signal,
+    headers: {
+      Authorization: `Bearer ${state.settings.apiKey.trim()}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': location.origin,
+      'X-Title': 'Rezeptfang',
+    },
+    body: JSON.stringify(body),
+  });
+  let content = '', finish = '', cost = null, broken = false;
+  try {
+    let res = await send();
+    if (!res.ok && res.status === 400) {
+      const t = await res.text();
+      if (/response_format|json/i.test(t)) { delete body.response_format; res = await send(); }
+      else throw new Error(apiError(400, t));
+    }
+    if (!res.ok) throw new Error(apiError(res.status, await res.text()));
+    onProgress('watch', 0);
+    // Antwort kommt Stueck fuer Stueck (Server-Sent Events), das haelt die Verbindung am Leben
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
     try {
-      return await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST', signal: ctrl.signal,
-        headers: {
-          Authorization: `Bearer ${state.settings.apiKey.trim()}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': location.origin,
-          'X-Title': 'Rezeptfang',
-        },
-        body: JSON.stringify(body),
-      });
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let nl;
+        while ((nl = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (payload === '[DONE]') continue;
+          let j; try { j = JSON.parse(payload); } catch (_) { continue; }
+          if (j.error) { const err = new Error(apiError(j.error.code || 500, JSON.stringify(j))); err.api = true; throw err; }
+          const ch = j.choices?.[0];
+          const piece = ch?.delta?.content;
+          if (piece) { content += Array.isArray(piece) ? piece.map((c) => c.text || '').join('') : piece; onProgress('write', (content.match(/"title"\s*:/g) || []).length); }
+          if (ch?.finish_reason) finish = ch.finish_reason;
+          if (j.usage?.cost !== undefined) cost = j.usage.cost;
+        }
+      }
     } catch (e) {
-      throw new Error(e.name === 'AbortError' ? 'Keine Antwort nach 7 Minuten. Versuch es noch einmal.' : 'Verbindung abgebrochen. Bist du online? Bleib während des Imports in Rezeptfang, Android unterbricht die App sonst manchmal.');
-    } finally { clearTimeout(timer); }
-  };
-  let res = await send();
-  if (!res.ok && res.status === 400) {
-    const t = await res.text();
-    if (/response_format|json/i.test(t)) { delete body.response_format; res = await send(); }
-    else throw new Error(apiError(400, t));
-  }
-  if (!res.ok) throw new Error(apiError(res.status, await res.text()));
-  const j = await res.json();
-  if (j.error) throw new Error(apiError(j.error.code || 500, JSON.stringify(j)));
-  let content = j.choices?.[0]?.message?.content;
-  if (Array.isArray(content)) content = content.map((c) => c.text || '').join('');
-  const finish = j.choices?.[0]?.finish_reason || j.choices?.[0]?.native_finish_reason || '';
-  if (!content) throw new Error(`Das Modell hat leer geantwortet${finish ? ` (${finish})` : ''}. Versuch es noch einmal.`);
+      if (e.api || e.name === 'AbortError') throw e;
+      broken = true; // Abbruch mitten in der Antwort: Teilergebnis unten retten
+    }
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('Keine fertige Antwort nach 10 Minuten. Versuch es noch einmal.');
+    if (e instanceof TypeError) throw new Error(DROP_MSG);
+    throw e;
+  } finally { clearTimeout(timer); }
+
+  if (!content.trim()) throw new Error(broken ? DROP_MSG : `Das Modell hat leer geantwortet${finish ? ` (${finish})` : ''}. Versuch es noch einmal.`);
   const parsed = parseJson(content);
-  if (!parsed) throw new Error(`Die Antwort des Modells war kein gültiges Rezept-Format${/length|max/i.test(finish) ? ', sie wurde abgeschnitten' : ''}. Versuch es noch einmal.`);
-  return { data: parsed.data, cost: j.usage?.cost ?? null, truncated: parsed.salvaged };
+  if (!parsed) throw new Error(broken ? DROP_MSG : `Die Antwort des Modells war kein gültiges Rezept-Format${/length|max/i.test(finish) ? ', sie wurde abgeschnitten' : ''}. Versuch es noch einmal.`);
+  return { data: parsed.data, cost, truncated: parsed.salvaged || broken };
 }
 
 function parseJson(txt) {
@@ -552,7 +581,14 @@ async function startImport(raw, force = false) {
   try { navigator.storage?.persist?.(); } catch (_) {}
   try {
     const url = videoUrl(vid);
-    const [meta, ai] = await Promise.all([oembed(url), askModel(url)]);
+    const lock = await holdScreen();
+    const progress = (phase, n) => {
+      const el = document.getElementById(`prog-${rec.id}`); if (!el) return;
+      el.textContent = phase === 'watch' ? 'Gemini schaut sich das Video an …' : n > 1 ? `Schreibt Rezept ${n} …` : 'Schreibt das Rezept …';
+    };
+    let meta, ai;
+    try { [meta, ai] = await Promise.all([oembed(url), askModel(url, progress)]); }
+    finally { if (lock) lock.release().catch(() => {}); }
     const list = normalizeAll(ai.data, meta);
     await db.del(rec.id);
     const cost = ai.cost !== null && ai.cost !== undefined ? ai.cost / list.length : null;
@@ -644,7 +680,7 @@ function renderFeed() {
   const pendingHtml = pending.map((r) => `
     <div class="card"><div class="thumb">${imgTag(r)}
       <div class="state">${r.status === 'importing'
-        ? `<strong>Rezept wird aus dem Video gelesen</strong><span>Das dauert meist 20 bis 60 Sekunden.</span><div class="bar"><i></i></div>`
+        ? `<strong>Rezept wird aus dem Video gelesen</strong><span id="prog-${r.id}">Verbinde mit OpenRouter …</span><span style="font-size:13px;opacity:.8">Lange Videos brauchen bis zu einige Minuten. Bitte in der App bleiben.</span><div class="bar"><i></i></div>`
         : `<strong>Import fehlgeschlagen</strong><span>${esc(r.error)}</span>
            <div class="rowbtns"><button class="btn small primary" data-act="retry" data-id="${r.id}">Erneut versuchen</button><button class="btn small ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" data-act="remove" data-id="${r.id}">Entfernen</button></div>`}
       </div></div></div>`).join('');
@@ -824,7 +860,7 @@ function viewSettings() {
     <div class="rowbtns"><button class="btn" data-act="export">Sicherung speichern</button><label class="btn ghost" for="importfile">Sicherung laden</label><input type="file" id="importfile" accept="application/json,.json" hidden></div>
     <div class="status" id="backupstatus"></div>
   </div>
-  <p class="sub" style="font-size:13px">${state.recipes.filter((r) => r.status === 'ok').length} Rezepte gespeichert. Rezeptfang Version 1.3 vom 22.10.2026.</p>`;
+  <p class="sub" style="font-size:13px">${state.recipes.filter((r) => r.status === 'ok').length} Rezepte gespeichert. Rezeptfang Version 1.4 vom 22.10.2026.</p>`;
 }
 
 /* ---------- Ereignisse ---------- */
@@ -952,6 +988,12 @@ $('#pastebtn').addEventListener('click', async () => {
 $('#adddlg').addEventListener('close', () => {
   if ($('#adddlg').returnValue === 'go') startImport($('#addurl').value);
 });
+
+/* Bildschirm waehrend des Imports anlassen, damit Android die App nicht pausiert */
+async function holdScreen() {
+  if (state.wake) return null;
+  try { return await navigator.wakeLock.request('screen'); } catch (_) { return null; }
+}
 
 /* Bildschirm anlassen beim Kochen */
 async function toggleWake() {
