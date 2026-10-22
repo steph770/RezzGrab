@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rezeptfang</title>
+<meta name="theme-color" content="#24382C">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F1F3EE; --surface:#FFFFFF; --ink:#1C2620; --muted:#636D66; --line:#DBE0D8;
+  --herb:#2E5A3F; --herb-ink:#FFFFFF; --herb-soft:#DCE8DF;
+  --saffron:#D9961C; --saffron-soft:#FAE9C4; --saffron-ink:#5A3D05;
+  --danger:#B0412D;
+  --display:"Bricolage Grotesque", system-ui, sans-serif;
+  --read:"Source Serif 4", Georgia, serif;
+  --nav-h:64px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#121815; --surface:#1B231E; --ink:#E8EDE7; --muted:#97A39A; --line:#2C3830;
+    --herb:#8DC3A0; --herb-ink:#0F1A13; --herb-soft:#21342A;
+    --saffron:#F0B84A; --saffron-soft:#3A2E14; --saffron-ink:#F7DFA8;
+    --danger:#E5806A;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:var(--display);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);min-height:100vh}
+button,input,textarea,select{font:inherit;color:inherit}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--saffron);outline-offset:2px}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* Kopf der Liste */
+.masthead{padding:28px 0 10px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.wordmark{margin:0;font-size:44px;line-height:.9;font-weight:800;letter-spacing:-.035em;font-variation-settings:"opsz" 96}
+.wordmark span{display:block;font-size:15px;font-weight:500;letter-spacing:0;color:var(--muted);margin-top:8px}
+.searchbox{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0 8px}
+.searchbox input{width:100%;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:12px 18px;font-size:16px}
+.searchbox input:focus{border-color:var(--herb);outline:none}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 12px;margin:0 -16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:6px 13px;font-size:14px;white-space:nowrap;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* Feed */
+.feed{display:grid;gap:26px;padding-top:6px}
+.card{display:block;text-decoration:none;color:inherit}
+.thumb{position:relative;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:var(--line)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.badge{position:absolute;left:10px;bottom:10px;background:rgba(15,20,17,.78);color:#fff;font-size:13px;font-weight:600;padding:3px 9px;border-radius:8px}
+.card h2{font-size:22px;line-height:1.15;font-weight:700;letter-spacing:-.015em;margin:12px 0 3px}
+.card .meta{color:var(--muted);font-size:14px;margin:0}
+.minitags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.minitag{font-size:12.5px;padding:2px 8px;border-radius:6px;background:var(--herb-soft);color:var(--ink)}
+.state{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:14px;
+  background:linear-gradient(to top,rgba(12,16,14,.86),rgba(12,16,14,.15));color:#fff}
+.state strong{font-size:17px}
+.bar{height:4px;border-radius:4px;background:rgba(255,255,255,.25);overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;width:40%;background:var(--saffron);animation:slide 1.4s ease-in-out infinite}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+@media (prefers-reduced-motion: reduce){.bar i{animation:none;width:100%;opacity:.6}}
+.rowbtns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+
+.empty{padding:40px 4px;text-align:left}
+.empty h2{font-size:26px;line-height:1.1;margin:0 0 10px;letter-spacing:-.02em}
+.empty p{color:var(--muted);margin:0 0 8px;max-width:46ch}
+
+/* Buttons */
+.btn{border:0;border-radius:12px;padding:11px 16px;font-weight:600;font-size:15px;cursor:pointer;background:var(--herb-soft);color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--herb);color:var(--herb-ink)}
+.btn.ghost{background:transparent;border:1.5px solid var(--line)}
+.btn.small{padding:7px 12px;font-size:14px;border-radius:10px}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.5}
+.fab{position:fixed;right:18px;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);z-index:20;
+  background:var(--saffron);color:#231803;border:0;border-radius:18px;padding:15px 20px;font-weight:700;font-size:16px;
+  box-shadow:0 8px 24px rgba(60,40,0,.28);cursor:pointer}
+
+/* Navigation */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);
+  display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+.tabs a{flex:1;max-width:200px;height:var(--nav-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-decoration:none;font-size:13px;color:var(--muted);font-weight:600}
+.tabs a svg{width:24px;height:24px}
+.tabs a[aria-current="page"]{color:var(--ink)}
+.tabs a[aria-current="page"] svg{color:var(--herb)}
+.tabs .count{background:var(--saffron);color:#231803;border-radius:999px;font-size:11px;padding:0 6px;margin-left:3px}
+
+/* Detail */
+.hero{position:relative;margin:0 -16px;aspect-ratio:16/9;background:var(--line);overflow:hidden}
+.hero img{width:100%;height:100%;object-fit:cover;display:block}
+.back{position:absolute;top:calc(env(safe-area-inset-top) + 12px);left:12px;width:42px;height:42px;border-radius:50%;
+  background:rgba(15,20,17,.7);color:#fff;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:24px}
+.dtitle{font-size:32px;line-height:1.05;font-weight:800;letter-spacing:-.03em;margin:18px 0 6px}
+.dmeta{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--muted);font-size:15px;align-items:center}
+.dmeta a{color:var(--herb);font-weight:600;text-decoration:none}
+.tagrow{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}
+.notice{background:var(--saffron-soft);color:var(--saffron-ink);border-radius:12px;padding:10px 14px;font-size:14.5px;margin:16px 0 0}
+.servings{display:flex;align-items:center;justify-content:space-between;margin:22px 0 8px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:8px}
+.servings button{width:48px;height:48px;border-radius:12px;border:0;background:var(--herb-soft);font-size:26px;font-weight:600;cursor:pointer}
+.servings .val{text-align:center}
+.servings .val strong{display:block;font-size:28px;line-height:1;font-weight:800}
+.servings .val span{font-size:13px;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
+.section-h{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:30px 0 10px}
+.group-h{font-size:15px;font-weight:700;color:var(--muted);margin:16px 0 4px}
+.ings{list-style:none;margin:0;padding:0}
+.ings li{display:grid;grid-template-columns:92px 1fr;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:16.5px}
+.ings .amt{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.ings .note{color:var(--muted);font-size:14.5px}
+.ings .missing{color:var(--saffron-ink);background:var(--saffron-soft);font-size:12.5px;border-radius:6px;padding:1px 6px;margin-left:6px;white-space:nowrap}
+.steps{list-style:none;counter-reset:s;margin:0;padding:0}
+.steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:10px;padding:14px 0;border-bottom:1px solid var(--line)}
+.steps li::before{content:counter(s);font-weight:800;font-size:22px;color:var(--herb);line-height:1.2}
+.steps p{margin:0;font-family:var(--read);font-size:18px;line-height:1.6}
+.steps li.done p{opacity:.45}
+.ing{background:var(--saffron-soft);color:var(--saffron-ink);border-radius:6px;padding:0 5px;font-family:var(--display);font-weight:650;font-size:16.5px;white-space:nowrap}
+.ts{display:inline-block;margin-top:6px;font-size:13.5px;color:var(--herb);font-weight:600;text-decoration:none}
+.tips{font-family:var(--read);font-size:17px;line-height:1.6;background:var(--surface);border-left:4px solid var(--saffron);border-radius:0 12px 12px 0;padding:12px 16px;margin:0}
+.foot{margin:34px 0 10px;display:flex;gap:8px;flex-wrap:wrap}
+.cost{color:var(--muted);font-size:13px;margin:8px 0 0}
+
+/* Einkauf */
+.pagetitle{font-size:34px;font-weight:800;letter-spacing:-.03em;margin:28px 0 6px;line-height:1}
+.sub{color:var(--muted);margin:0 0 14px}
+.shop{list-style:none;margin:0;padding:0}
+.shop li{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line)}
+.shop input[type=checkbox]{width:24px;height:24px;accent-color:var(--herb);flex:none}
+.shop label{flex:1;display:flex;gap:10px;align-items:baseline;cursor:pointer}
+.shop .amt{font-weight:700;min-width:70px;font-variant-numeric:tabular-nums}
+.shop .from{display:block;font-size:12.5px;color:var(--muted)}
+.shop li.checked label{opacity:.45;text-decoration:line-through}
+.addrow{display:flex;gap:8px;margin:14px 0}
+.addrow input{flex:1}
+
+/* Formulare */
+.field{display:block;margin:14px 0}
+.field > span{display:block;font-weight:600;font-size:14px;margin-bottom:5px}
+.field small{display:block;color:var(--muted);font-size:13px;margin-top:4px}
+.inp, .field input, .field textarea, .field select{width:100%;border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;font-size:16px}
+.field textarea{min-height:80px;resize:vertical}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:4px 16px 16px;margin:16px 0}
+.panel h3{font-size:18px;margin:14px 0 4px}
+.ed-ing{display:grid;grid-template-columns:64px 64px 1fr 36px;gap:6px;margin:6px 0;align-items:center}
+.ed-ing input{border:1.5px solid var(--line);background:var(--bg);border-radius:8px;padding:8px;font-size:15px;width:100%;min-width:0}
+.ed-ing .x{border:0;background:transparent;font-size:22px;color:var(--danger);cursor:pointer}
+.ed-step{margin:10px 0}
+.ed-step textarea{width:100%;border:1.5px solid var(--line);background:var(--bg);border-radius:8px;padding:8px;font-size:15px;min-height:64px}
+.tagpick{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.status{font-size:14px;margin-top:8px}
+.ok{color:var(--herb)} .err{color:var(--danger)}
+
+/* Dialog und Toast */
+dialog{border:0;border-radius:20px 20px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom));width:100%;max-width:640px;margin:auto auto 0;background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgba(10,14,12,.55)}
+dialog h2{margin:0 0 6px;font-size:24px;letter-spacing:-.02em}
+dialog p{color:var(--muted);margin:0 0 14px}
+.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 84px);transform:translateX(-50%);z-index:50;
+  background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:12px;font-size:15px;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<main id="view" class="wrap" aria-live="polite"></main>
+
+<button class="fab" id="fab" type="button">+ Rezept holen</button>
+
+<nav class="tabs" aria-label="Hauptnavigation">
+  <a href="#/" data-tab="list">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2.5"/><path d="M10 8.2v3.6L13 10z" fill="currentColor"/><path d="M7 20h10"/></svg>
+    Rezepte</a>
+  <a href="#/einkauf" data-tab="shop">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14l-1.3 11.2a2 2 0 0 1-2 1.8H8.3a2 2 0 0 1-2-1.8z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg>
+    <span>Einkauf<span class="count" id="shopcount" hidden></span></span></a>
+  <a href="#/einstellungen" data-tab="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+    Einstellungen</a>
+</nav>
+
+<dialog id="adddlg">
+  <form method="dialog" id="addform">
+    <h2>Rezept aus Video holen</h2>
+    <p>Am schnellsten geht es über Teilen in der YouTube-App. Hier kannst du einen Link auch direkt einfügen.</p>
+    <label class="field"><span>YouTube-Link</span><input id="addurl" type="url" inputmode="url" placeholder="https://youtu.be/..." autocomplete="off"></label>
+    <div class="rowbtns">
+      <button class="btn primary" type="submit" value="go">Rezept holen</button>
+      <button class="btn ghost" type="button" id="pastebtn">Aus Zwischenablage</button>
+      <button class="btn ghost" type="submit" value="cancel">Abbrechen</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+'use strict';
+/* ---------- Konstanten ---------- */
+const DEFAULT_MODEL = 'google/gemini-3.8-flash';
+const TAXONOMY = {
+  Herkunft: ['Fallow', 'NotAnother', 'KaptnCook', 'KitchenStories'],
+  Kochdauer: ['<20min', '<60min', '1hr+', '3hr+'],
+  Typ: ['main', 'salad', 'dessert', 'side', 'soup', 'starter'],
+  Quelle: ['Buch', 'Zeitung', 'Youtube', 'Blog'],
+  'Ernährung': ['vegetarisch'],
+};
+const ALL_TAGS = Object.values(TAXONOMY).flat();
+const CHANNEL_MAP = [
+  [/fallow/i, 'Fallow'],
+  [/not\s*another\s*cooking|notanother/i, 'NotAnother'],
+  [/kptncook|kaptn\s*cook/i, 'KaptnCook'],
+  [/kitchen\s*stories/i, 'KitchenStories'],
+];
+
+const SYSTEM_PROMPT = 'Du extrahierst Kochrezepte aus YouTube-Videos. Du antwortest ausschließlich mit einem einzigen JSON-Objekt nach dem vorgegebenen Schema, ohne Markdown und ohne Text davor oder danach.';
+
+const USER_PROMPT = `Schau dir das Video vollständig an (Bild, Ton, Einblendungen) und extrahiere das Rezept.
+
+Regeln:
+- Alles auf Deutsch, auch Titel und Zutatennamen. Eigennamen von Gerichten dürfen bleiben.
+- Metrische Einheiten. Rechne cups, oz, lb, sticks und fl oz in g (feste Zutaten) oder ml (Flüssigkeiten) um, °F in °C, inch in cm. Runde auf praxisnahe Werte.
+- Erlaubte Einheiten: g, kg, ml, l, EL, TL, Stk, Prise, Bund, Zehe, Dose, Scheibe, Handvoll, Zweig, Blatt. Für ganze Stücke ohne Einheit nimm "Stk".
+- Mengen nur, wenn sie im Video gesagt, eingeblendet oder sichtbar abgemessen werden. Sonst amount = null. Nichts erfinden, nicht schätzen.
+- servings: Portionen laut Video, sonst null.
+- total_time_min: Gesamtzeit in Minuten inklusive Ruhe-, Marinier-, Gär- und Backzeiten, nur wenn sie im Video genannt wird oder sich aus genannten Einzelzeiten summieren lässt. Die Länge des Videos ist keine Kochzeit. Sonst null.
+- ingredients: jede Zutat einmal, mit kurzer id ("z1", "z2", ...) und der Gesamtmenge. group nur, wenn das Rezept aus Komponenten besteht (z. B. "Sauce", "Teig"), sonst null. note für Zusätze wie "fein gehackt" oder "zimmerwarm", sonst null. pantry = true für Grundzutaten, die man meist zu Hause hat (Salz, Pfeffer, Zucker, Mehl, neutrales Öl, Olivenöl, Essig, Backpulver, getrocknete Gewürze), sonst false.
+- steps: kurze, klare Arbeitsschritte in der Reihenfolge des Videos, im Imperativ. In uses stehen die Zutaten, die in diesem Schritt verwendet werden, jeweils mit der Menge, die in diesem Schritt verwendet wird (bei Aufteilung die Teilmenge). Im text markierst du jede Verwendung mit {0}, {1}, ... (Index in uses). Die App ersetzt jeden Platzhalter durch "Menge Einheit Zutat". Beispiel: "{0} in einer Pfanne schmelzen." wird zu "50 g Butter in einer Pfanne schmelzen." Nenne die Zutat deshalb nicht zusätzlich im Text. timestamp_s: Sekunde im Video, an der der Schritt gezeigt wird, sonst null.
+- typ: genau einer aus main, salad, dessert, side, soup, starter, nach der Rolle im Menü, wie im Video dargestellt. Unklar: null.
+- vegetarisch: true nur, wenn keine Zutat Fleisch, Geflügel, Fisch, Meeresfrüchte, Fleischbrühe, Gelatine, Schmalz, Fischsauce, Sardellen oder Worcestershiresauce ist. Ei, Milchprodukte und Honig sind erlaubt. Eine optionale Fleischbeilage zählt als nicht vegetarisch. false, wenn eine solche Zutat vorkommt. Unklar: null.
+- tips: wichtige Hinweise des Kochs zu Technik oder Varianten, höchstens drei kurze Sätze, sonst null.
+- Zeigt das Video mehrere eigenständige Rezepte, nimm das Hauptrezept.
+- Ist es kein Kochvideo, setze is_recipe = false und lass die Listen leer.
+
+Schema:
+{"is_recipe": boolean, "title": string, "channel": string|null, "servings": number|null, "total_time_min": number|null,
+ "ingredients": [{"id": string, "group": string|null, "name": string, "amount": number|null, "unit": string|null, "note": string|null, "pantry": boolean}],
+ "steps": [{"text": string, "uses": [{"ref": string, "amount": number|null, "unit": string|null}], "timestamp_s": number|null}],
+ "typ": string|null, "vegetarisch": boolean|null, "tips": string|null}`;
+
+/* ---------- Hilfsfunktionen ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = (v) => (v === null || v === undefined || v === '' || !isFinite(Number(v)) ? null : Number(v));
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+function ytId(str) {
+  if (!str) return null;
+  const m = String(str).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:[^ ]*&)?v=|shorts\/|live\/|embed\/|v\/))([\w-]{11})/i);
+  return m ? m[1] : null;
+}
+const thumbHi = (id) => `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`;
+const thumbLo = (id) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+const videoUrl = (id, t) => `https://www.youtube.com/watch?v=${id}${t ? `&t=${Math.floor(t)}s` : ''}`;
+
+function fmtTime(min) {
+  if (!min) return '';
+  if (min < 60) return `${Math.round(min)} Min.`;
+  const h = Math.floor(min / 60), m = Math.round(min % 60);
+  return m ? `${h} Std. ${m} Min.` : `${h} Std.`;
+}
+function fmtStamp(s) { s = Math.floor(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+
+/* Mengen: in Basiseinheit rechnen, schoen ausgeben */
+const FRACTIONS = { 0.25: '¼', 0.5: '½', 0.75: '¾' };
+function toBase(amount, unit) {
+  const u = (unit || '').trim();
+  if (u === 'kg') return [amount * 1000, 'g'];
+  if (u === 'l') return [amount * 1000, 'ml'];
+  return [amount, u];
+}
+function decimal(n, digits) { return String(Number(n.toFixed(digits))).replace('.', ','); }
+function fmtAmount(amount, unit) {
+  if (amount === null || amount === undefined || !isFinite(amount)) return '';
+  let [n, u] = toBase(amount, unit);
+  if ((u === 'g' || u === 'ml') && n >= 1000) { n = n / 1000; u = u === 'g' ? 'kg' : 'l'; return `${decimal(n, 2)} ${u}`; }
+  let s;
+  if (u === 'g' || u === 'ml') s = n < 10 ? decimal(n, 1) : n < 100 ? String(Math.round(n)) : String(Math.round(n / 5) * 5);
+  else {
+    const q = Math.round(n * 4) / 4;
+    if (q === 0) s = decimal(n, 2);
+    else {
+      const whole = Math.floor(q), frac = Number((q - whole).toFixed(2));
+      s = (whole ? String(whole) : '') + (FRACTIONS[frac] || '');
+    }
+  }
+  return u ? `${s} ${u}` : s;
+}
+
+/* ---------- Datenbank (IndexedDB) ---------- */
+let _db;
+function openDb() {
+  if (!_db) _db = new Promise((res, rej) => {
+    const r = indexedDB.open('rezeptfang', 1);
+    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('recipes', { keyPath: 'id' }); d.createObjectStore('kv'); };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  return _db;
+}
+const p = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+async function os(name, mode = 'readonly') { return (await openDb()).transaction(name, mode).objectStore(name); }
+const db = {
+  all: async () => p((await os('recipes')).getAll()),
+  put: async (r) => p((await os('recipes', 'readwrite')).put(r)),
+  del: async (id) => p((await os('recipes', 'readwrite')).delete(id)),
+  get: async (k) => p((await os('kv')).get(k)),
+  set: async (k, v) => p((await os('kv', 'readwrite')).put(v, k)),
+};
+
+/* ---------- Zustand ---------- */
+const state = { recipes: [], shopping: [], settings: { apiKey: '', model: DEFAULT_MODEL }, q: '', tag: null, servings: {}, done: {}, wake: null };
+
+async function load() {
+  state.recipes = await db.all();
+  state.shopping = (await db.get('shopping')) || [];
+  state.settings = Object.assign({ apiKey: '', model: DEFAULT_MODEL }, (await db.get('settings')) || {});
+  // Haengengebliebene Importe (App wurde geschlossen) als Fehler markieren
+  for (const r of state.recipes) {
+    if (r.status === 'importing' && Date.now() - (r.startedAt || 0) > 4 * 60 * 1000) {
+      r.status = 'error'; r.error = 'Import wurde unterbrochen.'; await db.put(r);
+    }
+  }
+  updateShopCount();
+}
+async function refresh() { state.recipes = await db.all(); render(); }
+function updateShopCount() {
+  const open = state.shopping.filter((i) => !i.checked).length;
+  const el = $('#shopcount'); el.hidden = !open; el.textContent = open;
+}
+
+/* ---------- KI-Import ---------- */
+function apiError(status, text) {
+  let msg = '';
+  try { msg = JSON.parse(text)?.error?.message || ''; } catch (_) { msg = text.slice(0, 160); }
+  const map = {
+    401: 'Der OpenRouter-Schlüssel ist ungültig. Prüfe ihn in den Einstellungen.',
+    402: 'Das OpenRouter-Guthaben ist aufgebraucht oder das Tageslimit erreicht.',
+    403: 'Anfrage blockiert. Prüfe in der Guardrail, ob Gemini 3.8 Flash und Google AI Studio erlaubt sind.',
+    404: 'Kein passender Anbieter gefunden. Das Video wird nur über Google AI Studio verarbeitet.',
+    408: 'Zeitüberschreitung beim Anbieter. Versuch es noch einmal.',
+    429: 'Zu viele Anfragen. Warte kurz und versuch es noch einmal.',
+  };
+  return (map[status] || `Fehler ${status}.`) + (msg ? ` (${msg})` : '');
+}
+
+async function askModel(url) {
+  const body = {
+    model: state.settings.model || DEFAULT_MODEL,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: [{ type: 'text', text: USER_PROMPT }, { type: 'video_url', video_url: { url } }] },
+    ],
+    provider: { only: ['google-ai-studio'], allow_fallbacks: false },
+    response_format: { type: 'json_object' },
+    temperature: 0.2,
+    usage: { include: true },
+  };
+  const send = async () => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 240000);
+    try {
+      return await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST', signal: ctrl.signal,
+        headers: {
+          Authorization: `Bearer ${state.settings.apiKey.trim()}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': location.origin,
+          'X-Title': 'Rezeptfang',
+        },
+        body: JSON.stringify(body),
+      });
+    } catch (e) {
+      throw new Error(e.name === 'AbortError' ? 'Keine Antwort nach 4 Minuten. Versuch es noch einmal.' : 'Keine Verbindung zu OpenRouter. Bist du online?');
+    } finally { clearTimeout(timer); }
+  };
+  let res = await send();
+  if (!res.ok && res.status === 400) {
+    const t = await res.text();
+    if (/response_format|json/i.test(t)) { delete body.response_format; res = await send(); }
+    else throw new Error(apiError(400, t));
+  }
+  if (!res.ok) throw new Error(apiError(res.status, await res.text()));
+  const j = await res.json();
+  if (j.error) throw new Error(apiError(j.error.code || 500, JSON.stringify(j)));
+  let content = j.choices?.[0]?.message?.content;
+  if (Array.isArray(content)) content = content.map((c) => c.text || '').join('');
+  if (!content) throw new Error('Das Modell hat leer geantwortet. Versuch es noch einmal.');
+  return { data: parseJson(content), cost: j.usage?.cost ?? null };
+}
+
+function parseJson(txt) {
+  let s = String(txt).trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  const a = s.indexOf('{'), b = s.lastIndexOf('}');
+  if (a >= 0 && b > a) s = s.slice(a, b + 1);
+  try { return JSON.parse(s); } catch (_) { throw new Error('Die Antwort des Modells war kein gültiges Rezept-Format. Versuch es noch einmal.'); }
+}
+
+async function oembed(url) {
+  try {
+    const r = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(url)}`);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (_) { return null; }
+}
+
+function computeTags(r, typ, veg) {
+  const tags = new Set(['Youtube']);
+  for (const [re, tag] of CHANNEL_MAP) if (re.test(r.channel || '')) tags.add(tag);
+  const t = r.totalTime;
+  if (t) tags.add(t < 20 ? '<20min' : t < 60 ? '<60min' : t < 180 ? '1hr+' : '3hr+');
+  if (TAXONOMY.Typ.includes(typ)) tags.add(typ);
+  if (veg === true) tags.add('vegetarisch');
+  return ALL_TAGS.filter((x) => tags.has(x));
+}
+
+function normalize(rec, data, meta) {
+  if (data.is_recipe === false) throw new Error('In diesem Video wurde kein Rezept gefunden.');
+  const ings = (Array.isArray(data.ingredients) ? data.ingredients : []).map((i, k) => ({
+    id: String(i.id || `z${k + 1}`),
+    group: i.group ? String(i.group) : null,
+    name: String(i.name || '').trim(),
+    amount: num(i.amount),
+    unit: i.unit ? String(i.unit).trim() : '',
+    note: i.note ? String(i.note) : '',
+    pantry: !!i.pantry,
+  })).filter((i) => i.name);
+  // doppelte ids aufloesen
+  const seen = new Set();
+  for (const i of ings) { while (seen.has(i.id)) i.id += '_'; seen.add(i.id); }
+  const ids = new Set(ings.map((i) => i.id));
+  const steps = (Array.isArray(data.steps) ? data.steps : []).map((s) => ({
+    text: String(s.text || '').trim(),
+    uses: (Array.isArray(s.uses) ? s.uses : []).filter((u) => ids.has(String(u.ref))).map((u) => ({ ref: String(u.ref), amount: num(u.amount), unit: u.unit ? String(u.unit).trim() : '' })),
+    t: num(s.timestamp_s),
+  })).filter((s) => s.text);
+  if (!ings.length && !steps.length) throw new Error('Das Modell hat kein verwertbares Rezept geliefert.');
+
+  rec.title = String(data.title || meta?.title || 'Ohne Titel').trim();
+  rec.originalTitle = meta?.title || '';
+  rec.channel = meta?.author_name || data.channel || '';
+  rec.servings = num(data.servings) && num(data.servings) > 0 ? num(data.servings) : null;
+  rec.totalTime = num(data.total_time_min) && num(data.total_time_min) > 0 ? num(data.total_time_min) : null;
+  rec.ingredients = ings;
+  rec.steps = steps;
+  rec.tips = data.tips ? String(data.tips) : '';
+  rec.tags = computeTags(rec, data.typ, data.vegetarisch);
+  return rec;
+}
+
+let pendingLink = null;
+async function startImport(raw, force = false) {
+  const vid = ytId(raw);
+  if (!vid) { toast('Darin steckt kein YouTube-Link.'); return; }
+  const existing = state.recipes.find((r) => r.videoId === vid);
+  if (existing && existing.status === 'ok' && !force) { toast('Dieses Rezept hast du schon.'); go(`#/r/${existing.id}`); return; }
+  if (existing && existing.status === 'importing') { toast('Läuft schon.'); return; }
+  if (!state.settings.apiKey) {
+    pendingLink = raw; toast('Trag zuerst deinen OpenRouter-Schlüssel ein.'); go('#/einstellungen'); return;
+  }
+  const rec = existing || { id: 'r' + Date.now().toString(36) + uid(), videoId: vid, createdAt: Date.now(), tags: [] };
+  const backup = existing && existing.status === 'ok' ? JSON.parse(JSON.stringify(existing)) : null;
+  rec.status = 'importing'; rec.startedAt = Date.now(); rec.error = '';
+  await db.put(rec);
+  go('#/'); await refresh();
+  try { navigator.storage?.persist?.(); } catch (_) {}
+  try {
+    const url = videoUrl(vid);
+    const [meta, ai] = await Promise.all([oembed(url), askModel(url)]);
+    normalize(rec, ai.data, meta);
+    rec.cost = ai.cost; rec.status = 'ok'; rec.importedAt = Date.now();
+    await db.put(rec); await refresh();
+    toast(`„${rec.title}“ ist gespeichert.`);
+  } catch (e) {
+    if (backup) { await db.put(backup); toast(e.message); }
+    else { rec.status = 'error'; rec.error = e.message; await db.put(rec); }
+    await refresh();
+  }
+}
+
+/* ---------- Skalierung ---------- */
+function factorFor(r) {
+  const v = state.servings[r.id];
+  if (r.servings) return (v ?? r.servings) / r.servings;
+  return v ?? 1;
+}
+const scale = (a, f) => (a === null || a === undefined ? null : a * f);
+
+function useFor(r, use) {
+  const ing = r.ingredients.find((i) => i.id === use.ref);
+  if (!ing) return null;
+  let amount = use.amount, unit = use.unit;
+  if (amount === null) {
+    const count = r.steps.filter((s) => s.uses.some((u) => u.ref === use.ref)).length;
+    if (count === 1) { amount = ing.amount; unit = ing.unit; }
+  }
+  return { ing, amount, unit: unit || ing.unit };
+}
+
+/* ---------- Ansichten ---------- */
+function setTab(name) {
+  document.querySelectorAll('.tabs a').forEach((a) => a.setAttribute('aria-current', a.dataset.tab === name ? 'page' : 'false'));
+  $('#fab').hidden = name !== 'list';
+}
+function go(h) { if (location.hash === h) render(); else location.hash = h; }
+
+function render() {
+  const parts = (location.hash || '#/').slice(2).split('/');
+  const view = $('#view');
+  if (parts[0] === 'r' && parts[1]) {
+    const r = state.recipes.find((x) => x.id === parts[1]);
+    if (!r || r.status !== 'ok') { go('#/'); return; }
+    setTab('');
+    view.innerHTML = parts[2] === 'bearbeiten' ? viewEdit(r) : viewDetail(r);
+    window.scrollTo(0, 0);
+    return;
+  }
+  if (parts[0] === 'einkauf') { setTab('shop'); view.innerHTML = viewShop(); return; }
+  if (parts[0] === 'einstellungen') { setTab('settings'); view.innerHTML = viewSettings(); return; }
+  setTab('list');
+  view.innerHTML = viewList();
+  renderFeed();
+}
+
+function viewList() {
+  const ok = state.recipes.filter((r) => r.status === 'ok');
+  const present = new Set(ok.flatMap((r) => r.tags || []));
+  const chips = ALL_TAGS.filter((t) => present.has(t));
+  return `
+  <header class="masthead"><h1 class="wordmark">Rezeptfang<span>${ok.length ? `${ok.length} ${ok.length === 1 ? 'Rezept' : 'Rezepte'} aus Kochvideos` : 'Rezepte aus Kochvideos'}</span></h1></header>
+  ${ok.length ? `<div class="searchbox"><label class="sr" for="q">Suchen</label><input id="q" type="search" placeholder="Gericht, Zutat oder Kanal suchen" value="${esc(state.q)}" autocomplete="off"></div>
+  ${chips.length ? `<div class="chips"><button class="chip" data-tag="" aria-pressed="${!state.tag}">Alle</button>${chips.map((t) => `<button class="chip" data-tag="${esc(t)}" aria-pressed="${state.tag === t}">${esc(t)}</button>`).join('')}</div>` : ''}` : ''}
+  <div class="feed" id="feed"></div>`;
+}
+
+function matches(r, q) {
+  if (!q) return true;
+  const hay = [r.title, r.originalTitle, r.channel, ...(r.tags || []), ...(r.ingredients || []).map((i) => i.name)].join(' ').toLowerCase();
+  return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
+}
+
+function renderFeed() {
+  const feed = $('#feed'); if (!feed) return;
+  const list = state.recipes.slice().sort((a, b) => b.createdAt - a.createdAt);
+  const pending = list.filter((r) => r.status !== 'ok');
+  const shown = list.filter((r) => r.status === 'ok' && matches(r, state.q) && (!state.tag || (r.tags || []).includes(state.tag)));
+  if (!list.length) {
+    feed.innerHTML = `<div class="empty"><h2>Noch keine Rezepte.</h2>
+      <p>Öffne ein Kochvideo in der YouTube-App, tippe auf Teilen und wähle Rezeptfang. Zutaten und Schritte landen dann hier.</p>
+      <p>${state.settings.apiKey ? '' : 'Vorher einmal in den Einstellungen deinen OpenRouter-Schlüssel eintragen.'}</p></div>`;
+    return;
+  }
+  const pendingHtml = pending.map((r) => `
+    <div class="card"><div class="thumb"><img class="yt" data-vid="${r.videoId}" src="${thumbHi(r.videoId)}" alt="">
+      <div class="state">${r.status === 'importing'
+        ? `<strong>Rezept wird aus dem Video gelesen</strong><span>Das dauert meist 20 bis 60 Sekunden.</span><div class="bar"><i></i></div>`
+        : `<strong>Import fehlgeschlagen</strong><span>${esc(r.error)}</span>
+           <div class="rowbtns"><button class="btn small primary" data-act="retry" data-id="${r.id}">Erneut versuchen</button><button class="btn small ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" data-act="remove" data-id="${r.id}">Entfernen</button></div>`}
+      </div></div></div>`).join('');
+  const cards = shown.map((r) => `
+    <a class="card" href="#/r/${r.id}">
+      <div class="thumb"><img class="yt" loading="lazy" data-vid="${r.videoId}" src="${thumbHi(r.videoId)}" alt="">${r.totalTime ? `<span class="badge">${fmtTime(r.totalTime)}</span>` : ''}</div>
+      <h2>${esc(r.title)}</h2>
+      <p class="meta">${esc(r.channel)}</p>
+      ${(r.tags || []).filter((t) => t !== 'Youtube').length ? `<div class="minitags">${r.tags.filter((t) => t !== 'Youtube').map((t) => `<span class="minitag">${esc(t)}</span>`).join('')}</div>` : ''}
+    </a>`).join('');
+  const none = !shown.length && (state.q || state.tag) ? `<div class="empty"><h2>Nichts gefunden.</h2><p>Probier einen anderen Suchbegriff oder tippe auf „Alle“.</p></div>` : '';
+  feed.innerHTML = pendingHtml + cards + none;
+}
+
+function stepHtml(r, s, f) {
+  const uses = s.uses.map((u) => useFor(r, u)).filter(Boolean);
+  const label = (x) => {
+    const a = fmtAmount(scale(x.amount, f), x.unit);
+    return `<span class="ing">${esc(a ? `${a} ${x.ing.name}` : x.ing.name)}</span>`;
+  };
+  const used = new Set();
+  let text = esc(s.text).replace(/\{(\d+)\}/g, (m, k) => { const x = uses[+k]; if (!x) return ''; used.add(+k); return label(x); });
+  const rest = uses.filter((_, k) => !used.has(k));
+  if (rest.length) text += ` <span style="white-space:normal">${rest.map(label).join(' ')}</span>`;
+  return text;
+}
+
+function viewDetail(r) {
+  const f = factorFor(r);
+  const cur = r.servings ? Math.round(r.servings * f * 100) / 100 : f;
+  const missing = r.ingredients.filter((i) => i.amount === null && !i.pantry).length;
+  const groups = [];
+  for (const i of r.ingredients) { let g = groups.find((x) => x.name === (i.group || '')); if (!g) groups.push(g = { name: i.group || '', items: [] }); g.items.push(i); }
+  const done = state.done[r.id] || new Set();
+  return `
+  <article>
+    <div class="hero"><img class="yt" data-vid="${r.videoId}" src="${thumbHi(r.videoId)}" alt=""><a class="back" href="#/" aria-label="Zurück zur Übersicht">‹</a></div>
+    <h1 class="dtitle">${esc(r.title)}</h1>
+    <div class="dmeta"><span>${esc(r.channel)}</span>${r.totalTime ? `<span>${fmtTime(r.totalTime)}</span>` : ''}<a href="${videoUrl(r.videoId)}" target="_blank" rel="noopener">Video ansehen</a></div>
+    ${(r.tags || []).length ? `<div class="tagrow">${r.tags.map((t) => `<span class="minitag">${esc(t)}</span>`).join('')}</div>` : ''}
+    ${missing ? `<p class="notice">${missing === 1 ? 'Bei einer Zutat' : `Bei ${missing} Zutaten`} nennt das Video keine Menge. Du kannst sie unter „Bearbeiten“ ergänzen.</p>` : ''}
+
+    <div class="servings" role="group" aria-label="Portionen">
+      <button data-act="less" data-id="${r.id}" aria-label="Weniger">−</button>
+      <div class="val"><strong>${r.servings ? String(cur).replace('.', ',') : `× ${String(cur).replace('.', ',')}`}</strong><span>${r.servings ? (cur === 1 ? 'Person' : 'Personen') : 'Menge (Portionen im Video nicht genannt)'}</span></div>
+      <button data-act="more" data-id="${r.id}" aria-label="Mehr">+</button>
+    </div>
+    <div class="actions">
+      <button class="btn primary" data-act="toshop" data-id="${r.id}">Auf die Einkaufsliste</button>
+      <button class="btn ghost" data-act="wake">${state.wake ? 'Bildschirm darf ausgehen' : 'Bildschirm anlassen'}</button>
+    </div>
+
+    <h2 class="section-h">Zutaten</h2>
+    ${groups.map((g) => `${g.name ? `<h3 class="group-h">${esc(g.name)}</h3>` : ''}<ul class="ings">${g.items.map((i) => `
+      <li><span class="amt">${esc(fmtAmount(scale(i.amount, f), i.unit))}</span>
+      <span>${esc(i.name)}${i.note ? ` <span class="note">${esc(i.note)}</span>` : ''}${i.amount === null && !i.pantry ? '<span class="missing">Menge fehlt</span>' : ''}</span></li>`).join('')}</ul>`).join('')}
+
+    <h2 class="section-h">Zubereitung</h2>
+    <ol class="steps">${r.steps.map((s, k) => `
+      <li class="${done.has(k) ? 'done' : ''}" data-act="step" data-id="${r.id}" data-k="${k}"><div><p>${stepHtml(r, s, f)}</p>
+      ${s.t !== null && s.t !== undefined ? `<a class="ts" href="${videoUrl(r.videoId, s.t)}" target="_blank" rel="noopener">Im Video ab ${fmtStamp(s.t)}</a>` : ''}</div></li>`).join('')}</ol>
+
+    ${r.tips ? `<h2 class="section-h">Tipps aus dem Video</h2><p class="tips">${esc(r.tips)}</p>` : ''}
+
+    <div class="foot">
+      <a class="btn ghost" href="#/r/${r.id}/bearbeiten">Bearbeiten</a>
+      <button class="btn ghost" data-act="reimport" data-id="${r.id}">Neu einlesen</button>
+      <button class="btn ghost danger" data-act="delete" data-id="${r.id}">Löschen</button>
+    </div>
+    ${r.cost ? `<p class="cost">Import hat ${decimal(r.cost, 3)} $ gekostet.</p>` : ''}
+  </article>`;
+}
+
+function viewEdit(r) {
+  return `
+  <form id="editform" data-id="${r.id}">
+    <h1 class="pagetitle">Rezept bearbeiten</h1>
+    <p class="sub">${esc(r.originalTitle || r.title)}</p>
+    <label class="field"><span>Titel</span><input name="title" value="${esc(r.title)}"></label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <label class="field"><span>Portionen</span><input name="servings" type="number" inputmode="decimal" min="0" step="0.5" value="${r.servings ?? ''}"></label>
+      <label class="field"><span>Gesamtzeit (Min.)</span><input name="totalTime" type="number" inputmode="numeric" min="0" value="${r.totalTime ?? ''}"></label>
+    </div>
+
+    <div class="panel"><h3>Tags</h3>
+      ${Object.entries(TAXONOMY).map(([cat, tags]) => `<div class="group-h">${esc(cat)}</div><div class="tagpick">${tags.map((t) => `<button type="button" class="chip" data-act="tagtoggle" data-tag="${esc(t)}" aria-pressed="${(r.tags || []).includes(t)}">${esc(t)}</button>`).join('')}</div>`).join('')}
+      <small style="color:var(--muted)">Pro Kategorie ein Tag, „vegetarisch“ kommt zusätzlich dazu.</small>
+    </div>
+
+    <div class="panel"><h3>Zutaten</h3>
+      <div style="display:grid;grid-template-columns:64px 64px 1fr 36px;gap:6px;font-size:12.5px;color:var(--muted)"><span>Menge</span><span>Einheit</span><span>Zutat</span><span></span></div>
+      <div id="eding">${r.ingredients.map(ingRow).join('')}</div>
+      <button type="button" class="btn small" data-act="adding">Zutat hinzufügen</button>
+      <small style="display:block;color:var(--muted);margin-top:8px">Mengen gelten für ${r.servings ? `${String(r.servings).replace('.', ',')} Portionen` : 'die Originalmenge'}.</small>
+    </div>
+
+    <div class="panel"><h3>Schritte</h3>
+      <small style="color:var(--muted)">{0}, {1} … sind Platzhalter für die Zutatenmengen dieses Schritts. Lass sie stehen oder lösch sie mitsamt der Zutat.</small>
+      ${r.steps.map((s, k) => {
+        const names = s.uses.map((u, n) => { const i = r.ingredients.find((x) => x.id === u.ref); return i ? `{${n}} = ${i.name}` : ''; }).filter(Boolean).join(', ');
+        return `<div class="ed-step"><textarea name="step${k}">${esc(s.text)}</textarea>${names ? `<small style="color:var(--muted)">${esc(names)}</small>` : ''}</div>`;
+      }).join('')}
+    </div>
+
+    <label class="field"><span>Tipps</span><textarea name="tips">${esc(r.tips)}</textarea></label>
+    <div class="rowbtns" style="margin:18px 0">
+      <button class="btn primary" type="submit">Änderungen speichern</button>
+      <a class="btn ghost" href="#/r/${r.id}">Abbrechen</a>
+    </div>
+  </form>`;
+}
+function ingRow(i) {
+  return `<div class="ed-ing" data-iid="${esc(i.id)}">
+    <input aria-label="Menge" data-f="amount" inputmode="decimal" value="${i.amount ?? ''}">
+    <input aria-label="Einheit" data-f="unit" value="${esc(i.unit)}">
+    <input aria-label="Zutat" data-f="name" value="${esc(i.name)}">
+    <button type="button" class="x" data-act="deling" aria-label="Zutat entfernen">×</button></div>`;
+}
+
+/* Einkaufsliste */
+function viewShop() {
+  const items = state.shopping;
+  const buy = items.filter((i) => !i.pantry), pantry = items.filter((i) => i.pantry);
+  const li = (i) => `<li class="${i.checked ? 'checked' : ''}"><input type="checkbox" id="s${i.id}" data-act="check" data-id="${i.id}" ${i.checked ? 'checked' : ''}>
+    <label for="s${i.id}"><span class="amt">${esc(fmtAmount(i.amount, i.unit))}</span><span>${esc(i.name)}<span class="from">${esc((i.from || []).join(', '))}</span></span></label></li>`;
+  const sortItems = (a) => a.slice().sort((x, y) => (x.checked - y.checked) || x.name.localeCompare(y.name, 'de'));
+  return `
+  <h1 class="pagetitle">Einkaufsliste</h1>
+  <p class="sub">${items.length ? `${items.filter((i) => !i.checked).length} von ${items.length} noch offen` : 'Füge Zutaten aus einem Rezept hinzu oder schreib selbst etwas dazu.'}</p>
+  <form class="addrow" id="shopadd"><label class="sr" for="shopnew">Eintrag</label><input class="inp" id="shopnew" placeholder="z. B. 2 Zitronen" autocomplete="off"><button class="btn primary" type="submit">Dazu</button></form>
+  ${buy.length ? `<ul class="shop">${sortItems(buy).map(li).join('')}</ul>` : ''}
+  ${pantry.length ? `<h2 class="group-h" style="margin-top:24px">Vorrat prüfen</h2><ul class="shop">${sortItems(pantry).map(li).join('')}</ul>` : ''}
+  ${items.length ? `<div class="rowbtns" style="margin-top:22px"><button class="btn ghost" data-act="clearchecked">Abgehakte entfernen</button><button class="btn ghost danger" data-act="clearall">Liste leeren</button></div>` : ''}`;
+}
+
+async function addToShop(r) {
+  const f = factorFor(r);
+  for (const i of r.ingredients) {
+    let [amount, unit] = i.amount === null ? [null, i.unit] : toBase(i.amount * f, i.unit);
+    const key = `${i.name.toLowerCase().trim()}|${unit}`;
+    const hit = state.shopping.find((s) => !s.checked && s.key === key);
+    if (hit) {
+      hit.amount = hit.amount === null || amount === null ? (hit.amount ?? amount) : hit.amount + amount;
+      if (!hit.from.includes(r.title)) hit.from.push(r.title);
+    } else state.shopping.push({ id: uid(), key, name: i.name, amount, unit, pantry: i.pantry, checked: false, from: [r.title] });
+  }
+  await db.set('shopping', state.shopping); updateShopCount();
+  toast('Zutaten sind auf der Einkaufsliste.');
+}
+
+/* Einstellungen */
+function viewSettings() {
+  const s = state.settings;
+  return `
+  <h1 class="pagetitle">Einstellungen</h1>
+  <form id="setform" class="panel">
+    <h3>OpenRouter</h3>
+    <label class="field"><span>API-Schlüssel</span><input name="apiKey" type="password" value="${esc(s.apiKey)}" placeholder="sk-or-v1-..." autocomplete="off" spellcheck="false">
+      <small>Bleibt nur auf diesem Gerät gespeichert.</small></label>
+    <label class="field"><span>Modell</span><input name="model" value="${esc(s.model)}" spellcheck="false">
+      <small>Standard: ${DEFAULT_MODEL}. Muss YouTube-Links über Google AI Studio verstehen.</small></label>
+    <div class="rowbtns"><button class="btn primary" type="submit">Speichern</button><button class="btn ghost" type="button" data-act="testkey">Schlüssel prüfen</button></div>
+    <div class="status" id="keystatus"></div>
+  </form>
+  <div class="panel">
+    <h3>Sicherung</h3>
+    <p class="sub" style="margin:4px 0 12px">Deine Rezepte liegen nur in diesem Browser. Speichere ab und zu eine Sicherung, etwa in Google Drive.</p>
+    <div class="rowbtns"><button class="btn" data-act="export">Sicherung speichern</button><label class="btn ghost" for="importfile">Sicherung laden</label><input type="file" id="importfile" accept="application/json,.json" hidden></div>
+    <div class="status" id="backupstatus"></div>
+  </div>
+  <p class="sub" style="font-size:13px">${state.recipes.filter((r) => r.status === 'ok').length} Rezepte gespeichert. Rezeptfang v1.</p>`;
+}
+
+/* ---------- Ereignisse ---------- */
+document.addEventListener('click', async (e) => {
+  const el = e.target.closest('[data-act], .chip[data-tag]');
+  if (!el) return;
+  if (el.matches('.chip[data-tag]') && !el.dataset.act) {
+    state.tag = el.dataset.tag || null;
+    document.querySelectorAll('.chips .chip').forEach((c) => c.setAttribute('aria-pressed', String((c.dataset.tag || null) === state.tag)));
+    renderFeed(); return;
+  }
+  const act = el.dataset.act, id = el.dataset.id;
+  const r = id ? state.recipes.find((x) => x.id === id) : null;
+  switch (act) {
+    case 'retry': if (r) startImport(videoUrl(r.videoId)); break;
+    case 'remove': if (r) { await db.del(r.id); refresh(); } break;
+    case 'less': case 'more': {
+      const stepSize = r.servings ? (r.servings >= 2 ? 1 : 0.5) : 0.5;
+      const curVal = r.servings ? (state.servings[r.id] ?? r.servings) : (state.servings[r.id] ?? 1);
+      const next = Math.max(stepSize, curVal + (act === 'more' ? stepSize : -stepSize));
+      state.servings[r.id] = next; const y = scrollY; render(); scrollTo(0, y); break;
+    }
+    case 'toshop': if (r) addToShop(r); break;
+    case 'wake': await toggleWake(); { const y = scrollY; render(); scrollTo(0, y); } break;
+    case 'step': {
+      if (e.target.closest('a')) return;
+      const set = state.done[id] || (state.done[id] = new Set()); const k = +el.dataset.k;
+      set.has(k) ? set.delete(k) : set.add(k); el.classList.toggle('done'); break;
+    }
+    case 'reimport': if (r && confirm('Rezept neu aus dem Video einlesen? Deine Änderungen gehen dabei verloren.')) startImport(videoUrl(r.videoId), true); break;
+    case 'delete': if (r && confirm(`„${r.title}“ löschen?`)) { await db.del(r.id); await refresh(); go('#/'); toast('Gelöscht.'); } break;
+    case 'tagtoggle': {
+      const t = el.dataset.tag, on = el.getAttribute('aria-pressed') !== 'true';
+      const cat = Object.entries(TAXONOMY).find(([, v]) => v.includes(t))[0];
+      if (on && cat !== 'Ernährung') el.parentElement.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', 'false'));
+      el.setAttribute('aria-pressed', String(on)); break;
+    }
+    case 'adding': $('#eding').insertAdjacentHTML('beforeend', ingRow({ id: 'n' + uid(), amount: null, unit: '', name: '' })); break;
+    case 'deling': el.closest('.ed-ing').remove(); break;
+    case 'check': {
+      const it = state.shopping.find((i) => i.id === id); if (!it) break;
+      it.checked = el.checked; await db.set('shopping', state.shopping); updateShopCount(); render(); break;
+    }
+    case 'clearchecked': state.shopping = state.shopping.filter((i) => !i.checked); await db.set('shopping', state.shopping); updateShopCount(); render(); break;
+    case 'clearall': if (confirm('Ganze Einkaufsliste leeren?')) { state.shopping = []; await db.set('shopping', []); updateShopCount(); render(); } break;
+    case 'testkey': testKey(); break;
+    case 'export': exportBackup(); break;
+  }
+});
+
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'q') { state.q = e.target.value; renderFeed(); }
+});
+
+document.addEventListener('change', async (e) => {
+  if (e.target.id === 'importfile' && e.target.files[0]) importBackup(e.target.files[0]);
+});
+
+document.addEventListener('submit', async (e) => {
+  const f = e.target;
+  if (f.id === 'setform') {
+    e.preventDefault();
+    state.settings.apiKey = f.apiKey.value.trim();
+    state.settings.model = f.model.value.trim() || DEFAULT_MODEL;
+    await db.set('settings', state.settings);
+    $('#keystatus').innerHTML = '<span class="ok">Gespeichert.</span>';
+    if (pendingLink && state.settings.apiKey) { const l = pendingLink; pendingLink = null; startImport(l); }
+  }
+  if (f.id === 'editform') {
+    e.preventDefault();
+    const r = state.recipes.find((x) => x.id === f.dataset.id); if (!r) return;
+    const el = f.elements;
+    r.title = el.title.value.trim() || r.title;
+    const sv = num(el.servings.value.replace(',', '.')); r.servings = sv && sv > 0 ? sv : null;
+    const tt = num(el.totalTime.value); r.totalTime = tt && tt > 0 ? tt : null;
+    r.tags = [...f.querySelectorAll('.tagpick .chip[aria-pressed="true"]')].map((c) => c.dataset.tag);
+    const old = new Map(r.ingredients.map((i) => [i.id, i]));
+    r.ingredients = [...f.querySelectorAll('.ed-ing')].map((row) => {
+      const g = (k) => row.querySelector(`[data-f="${k}"]`).value.trim();
+      const prev = old.get(row.dataset.iid) || {};
+      return { id: row.dataset.iid, group: prev.group || null, name: g('name'), amount: num(g('amount').replace(',', '.')), unit: g('unit'), note: prev.note || '', pantry: !!prev.pantry };
+    }).filter((i) => i.name);
+    const ids = new Set(r.ingredients.map((i) => i.id));
+    r.steps = r.steps.map((s, k) => ({ ...s, text: (el[`step${k}`]?.value ?? s.text).trim(), uses: s.uses.filter((u) => ids.has(u.ref)) })).filter((s) => s.text);
+    r.tips = el.tips.value.trim();
+    delete state.servings[r.id];
+    await db.put(r); await refresh(); go(`#/r/${r.id}`); toast('Gespeichert.');
+  }
+  if (f.id === 'shopadd') {
+    e.preventDefault();
+    const v = $('#shopnew').value.trim(); if (!v) return;
+    const m = v.match(/^(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|EL|TL|Stk|Prise|Bund|Dose)?\s+(.+)$/i);
+    const item = m ? { amount: Number(m[1].replace(',', '.')), unit: m[2] || '', name: m[3] } : { amount: null, unit: '', name: v };
+    state.shopping.push({ id: uid(), key: `${item.name.toLowerCase()}|${item.unit}`, ...item, pantry: false, checked: false, from: [] });
+    await db.set('shopping', state.shopping); updateShopCount(); render(); $('#shopnew').focus();
+  }
+});
+
+/* Vorschaubilder: maxres fehlt bei manchen Videos, dann liefert YouTube ein 120px-Platzhalterbild */
+document.addEventListener('load', (e) => {
+  const img = e.target;
+  if (img.tagName === 'IMG' && img.classList.contains('yt') && img.naturalWidth <= 120 && !img.dataset.fb) { img.dataset.fb = 1; img.src = thumbLo(img.dataset.vid); }
+}, true);
+document.addEventListener('error', (e) => {
+  const img = e.target;
+  if (img.tagName === 'IMG' && img.classList.contains('yt') && !img.dataset.fb) { img.dataset.fb = 1; img.src = thumbLo(img.dataset.vid); }
+}, true);
+
+/* Hinzufuegen-Dialog */
+$('#fab').addEventListener('click', () => { $('#addurl').value = ''; $('#adddlg').showModal(); });
+$('#pastebtn').addEventListener('click', async () => {
+  try { $('#addurl').value = await navigator.clipboard.readText(); } catch (_) { toast('Kein Zugriff auf die Zwischenablage. Füge den Link per Gedrückthalten ein.'); }
+});
+$('#adddlg').addEventListener('close', () => {
+  if ($('#adddlg').returnValue === 'go') startImport($('#addurl').value);
+});
+
+/* Bildschirm anlassen beim Kochen */
+async function toggleWake() {
+  try {
+    if (state.wake) { await state.wake.release(); state.wake = null; return; }
+    state.wake = await navigator.wakeLock.request('screen');
+    state.wake.addEventListener('release', () => { if (!document.hidden) state.wake = null; });
+  } catch (_) { toast('Dein Browser kann den Bildschirm nicht anlassen.'); state.wake = null; }
+}
+document.addEventListener('visibilitychange', async () => {
+  if (!document.hidden && state.wake) { try { state.wake = await navigator.wakeLock.request('screen'); } catch (_) {} }
+});
+
+/* Schluessel pruefen */
+async function testKey() {
+  const st = $('#keystatus');
+  const key = $('#setform').apiKey.value.trim();
+  if (!key) { st.innerHTML = '<span class="err">Bitte zuerst einen Schlüssel eintragen.</span>'; return; }
+  st.textContent = 'Prüfe …';
+  try {
+    const r = await fetch('https://openrouter.ai/api/v1/key', { headers: { Authorization: `Bearer ${key}` } });
+    if (!r.ok) { st.innerHTML = `<span class="err">${esc(apiError(r.status, await r.text()))}</span>`; return; }
+    const d = (await r.json()).data || {};
+    const used = d.usage != null ? `${decimal(d.usage, 2)} $ verbraucht` : '';
+    const left = d.limit_remaining != null ? `, ${decimal(d.limit_remaining, 2)} $ Limit übrig` : '';
+    st.innerHTML = `<span class="ok">Schlüssel funktioniert${used ? `: ${used}${left}` : ''}.</span>`;
+  } catch (_) { st.innerHTML = '<span class="err">Keine Verbindung zu OpenRouter.</span>'; }
+}
+
+/* Sicherung */
+function exportBackup() {
+  const data = { app: 'rezeptfang', version: 1, exportedAt: new Date().toISOString(), recipes: state.recipes.filter((r) => r.status === 'ok'), shopping: state.shopping };
+  const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `rezeptfang-sicherung-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+async function importBackup(file) {
+  const st = $('#backupstatus');
+  try {
+    const data = JSON.parse(await file.text());
+    if (data.app !== 'rezeptfang' || !Array.isArray(data.recipes)) throw new Error();
+    for (const r of data.recipes) if (r && r.id && r.videoId) await db.put(r);
+    if (Array.isArray(data.shopping) && confirm('Auch die Einkaufsliste aus der Sicherung übernehmen?')) { state.shopping = data.shopping; await db.set('shopping', state.shopping); updateShopCount(); }
+    state.recipes = await db.all();
+    st.innerHTML = `<span class="ok">${data.recipes.length} Rezepte geladen.</span>`;
+  } catch (_) { st.innerHTML = '<span class="err">Diese Datei ist keine Rezeptfang-Sicherung.</span>'; }
+}
+
+/* ---------- Start ---------- */
+window.addEventListener('hashchange', render);
+(async function init() {
+  await load();
+  const params = new URLSearchParams(location.search);
+  const shared = [params.get('url'), params.get('text'), params.get('title')].filter(Boolean).join(' ');
+  if (location.search) history.replaceState(null, '', location.pathname + (location.hash || '#/'));
+  render();
+  if (shared) startImport(shared);
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
