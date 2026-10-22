@@ -1,7 +1,7 @@
-// Rezeptfang Service Worker: hält die App offline verfügbar, speichert Vorschaubilder zwischen
+// ReciGrab Service Worker: hält die App offline verfügbar, speichert Vorschaubilder zwischen
 // nimmt geteilte Inhalte (Links, Texte, Bilder) aus dem Android-Teilen-Menü entgegen
 // und führt Rezept-Importe im Hintergrund aus, auch wenn die App nicht sichtbar ist.
-const VERSION = 'rf-v11';
+const VERSION = 'rf-v12';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -107,7 +107,7 @@ async function runJob({ id, body, key, referer, label }) {
   await jobPut({ id, status: 'running', at: Date.now() });
   const send = () => fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'HTTP-Referer': referer, 'X-Title': 'Rezeptfang' },
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'HTTP-Referer': referer, 'X-Title': 'ReciGrab' },
     body: JSON.stringify(body),
   });
   let content = '', finish = '', cost = null, broken = false, lastN = -1;
@@ -166,7 +166,7 @@ async function finishJob(job, label) {
   if (!visible && self.Notification && Notification.permission === 'granted') {
     const ok = job.status === 'done' && job.content;
     await self.registration.showNotification(ok ? 'Rezept ist fertig' : 'Import fehlgeschlagen', {
-      body: ok ? `Das Rezept aus ${label === 'Video' ? 'dem Video' : label === 'Bilder' ? 'den Bildern' : label === 'Webseite' ? 'der Webseite' : 'dem Text'} liegt in Rezeptfang.` : 'Öffne Rezeptfang, um es noch einmal zu versuchen.',
+      body: ok ? `Das Rezept aus ${label === 'Video' ? 'dem Video' : label === 'Bilder' ? 'den Bildern' : label === 'Webseite' ? 'der Webseite' : 'dem Text'} liegt in ReciGrab.` : 'Öffne ReciGrab, um es noch einmal zu versuchen.',
       tag: `rf-${job.id}`, icon: 'icon-192.png', badge: 'icon-192.png',
     });
   }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Rezeptfang</title>
+<title>ReciGrab</title>
 <meta name="theme-color" content="#24382C">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
@@ -269,7 +269,7 @@ dialog p{color:var(--muted);margin:0 0 14px}
 
 <dialog id="adddlg">
   <h2>Rezept hinzufügen</h2>
-  <p>Am schnellsten über Teilen: Video aus der YouTube-App, Screenshots oder Fotos an Rezeptfang schicken.</p>
+  <p>Am schnellsten über Teilen: Video aus der YouTube-App, Screenshots oder Fotos an ReciGrab schicken.</p>
   <label class="field"><span>YouTube-Link</span><input id="addurl" type="url" inputmode="url" placeholder="https://youtu.be/..." autocomplete="off"></label>
   <div class="rowbtns">
     <button class="btn primary" type="button" id="urlgo">Rezept holen</button>
@@ -296,7 +296,7 @@ dialog p{color:var(--muted);margin:0 0 14px}
 <script>
 'use strict';
 /* ---------- Konstanten ---------- */
-const APP_VERSION = '2.5 vom 22.10.2026';
+const APP_VERSION = '2.6 vom 22.10.2026';
 const DEFAULT_MODEL = 'google/gemini-3.8-flash';
 const TAXONOMY = {
   Quelle: ['Youtube', 'Buch', 'Zeitung', 'Blog'],
@@ -653,7 +653,7 @@ function apiError(status, text) {
   return (map[status] || `Fehler ${status}.`) + (msg ? ` (${msg})` : '');
 }
 
-const DROP_MSG = 'Die Verbindung ist während des Imports abgerissen. Bleib in Rezeptfang und lass den Bildschirm an, bis die Karte fertig ist, dann noch einmal versuchen.';
+const DROP_MSG = 'Die Verbindung ist während des Imports abgerissen. Bleib in ReciGrab und lass den Bildschirm an, bis die Karte fertig ist, dann noch einmal versuchen.';
 
 function buildBody(input) {
   let parts;
@@ -692,7 +692,7 @@ async function fetchJob(body, onProgress = () => {}) {
   const timer = setTimeout(() => ctrl.abort(), 600000);
   const send = () => fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST', signal: ctrl.signal,
-    headers: { Authorization: `Bearer ${state.settings.apiKey.trim()}`, 'Content-Type': 'application/json', 'HTTP-Referer': location.origin, 'X-Title': 'Rezeptfang' },
+    headers: { Authorization: `Bearer ${state.settings.apiKey.trim()}`, 'Content-Type': 'application/json', 'HTTP-Referer': location.origin, 'X-Title': 'ReciGrab' },
     body: JSON.stringify(body),
   });
   let content = '', finish = '', cost = null, broken = false;
@@ -890,7 +890,7 @@ async function askFocus(urls) {
   const prompt = `Du bekommst ${urls.length} Vorschaubild(er) von Kochvideos. Bestimme für jedes Bild, wo horizontal die Mitte des Essens liegt (fertiges Gericht oder wichtigste Speise). Ignoriere Personen und eingeblendete Schrift. x = 0 ist der linke Rand, x = 100 der rechte Rand. Ist kein Essen zu sehen, setze null. Antworte nur mit JSON: {"x": [Zahl oder null für jedes Bild, in der Reihenfolge der Bilder]}`;
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${state.settings.apiKey.trim()}`, 'Content-Type': 'application/json', 'HTTP-Referer': location.origin, 'X-Title': 'Rezeptfang' },
+    headers: { Authorization: `Bearer ${state.settings.apiKey.trim()}`, 'Content-Type': 'application/json', 'HTTP-Referer': location.origin, 'X-Title': 'ReciGrab' },
     body: JSON.stringify({
       model: state.settings.model || DEFAULT_MODEL,
       messages: [{ role: 'user', content: [{ type: 'text', text: prompt }, ...urls.map((u) => ({ type: 'image_url', image_url: { url: u } }))] }],
@@ -989,7 +989,7 @@ async function startPhotoImport(blobs) {
 }
 async function startWebImport(url) {
   let u;
-  try { u = new URL(url); } catch (_) { toast('Diesen Link kann Rezeptfang nicht lesen.'); return; }
+  try { u = new URL(url); } catch (_) { toast('Diesen Link kann ReciGrab nicht lesen.'); return; }
   const key = (x) => { try { const v = new URL(x); return v.hostname.replace(/^www\./, '') + v.pathname.replace(/\/$/, ''); } catch (_) { return x; } };
   const done = state.recipes.filter((r) => r.status === 'ok' && r.sourceUrl && key(r.sourceUrl) === key(u.href));
   if (done.length) { toast('Dieses Rezept hast du schon.'); go(`#/r/${done[0].id}`); return; }
@@ -1160,7 +1160,7 @@ function viewList() {
   const n = filterCount();
   const chevron = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
   return `
-  <header class="masthead"><h1 class="wordmark">Rezeptfang<span>${ok.length ? `${ok.length} ${ok.length === 1 ? 'Rezept' : 'Rezepte'} in deiner Sammlung` : 'Rezepte aus Videos, Büchern und Screenshots'}</span></h1></header>
+  <header class="masthead"><h1 class="wordmark">ReciGrab<span>${ok.length ? `${ok.length} ${ok.length === 1 ? 'Rezept' : 'Rezepte'} in deiner Sammlung` : 'Rezepte aus Videos, Büchern und Screenshots'}</span></h1></header>
   ${ok.length ? `<div class="searchbox"><label class="sr" for="q">Suchen</label><input id="q" type="search" placeholder="Gericht oder Zutat suchen" value="${esc(state.q)}" autocomplete="off"></div>
   ${cats.length ? `<div class="filterline">
     <button class="filtertoggle" data-act="togglefilter" aria-expanded="${state.showFilter}">Nach Tags filtern${n ? ` (${n})` : ''}${chevron}</button>
@@ -1188,7 +1188,7 @@ function renderFeed() {
   const fs = $('#fshow'); if (fs) fs.textContent = shownLabel(shown.length);
   if (!list.length) {
     feed.innerHTML = `<div class="empty"><h2>Noch keine Rezepte.</h2>
-      <p>Teile ein Kochvideo aus der YouTube-App, Screenshots eines Rezepts oder Fotos von Kochbuchseiten an Rezeptfang. Zutaten und Schritte landen dann hier.</p>
+      <p>Teile ein Kochvideo aus der YouTube-App, Screenshots eines Rezepts oder Fotos von Kochbuchseiten an ReciGrab. Zutaten und Schritte landen dann hier.</p>
       <p>${state.settings.apiKey ? '' : 'Vorher einmal in den Einstellungen deinen OpenRouter-Schlüssel eintragen.'}</p></div>`;
     return;
   }
@@ -1528,7 +1528,7 @@ function viewSettings() {
   </form>
   <div class="panel">
     <h3>Hintergrund-Import</h3>
-    <p class="sub" style="margin:4px 0 12px">${useWorker() ? 'Importe laufen weiter, wenn du die App verlässt.' : 'In dieser Umgebung laufen Importe nur, solange die App offen ist.'} ${'Notification' in window ? (Notification.permission === 'granted' ? 'Wenn die App im Hintergrund ist, bekommst du eine Benachrichtigung, sobald ein Rezept fertig ist.' : 'Auf Wunsch meldet sich Rezeptfang, sobald ein Rezept im Hintergrund fertig ist.') : ''}</p>
+    <p class="sub" style="margin:4px 0 12px">${useWorker() ? 'Importe laufen weiter, wenn du die App verlässt.' : 'In dieser Umgebung laufen Importe nur, solange die App offen ist.'} ${'Notification' in window ? (Notification.permission === 'granted' ? 'Wenn die App im Hintergrund ist, bekommst du eine Benachrichtigung, sobald ein Rezept fertig ist.' : 'Auf Wunsch meldet sich ReciGrab, sobald ein Rezept im Hintergrund fertig ist.') : ''}</p>
     ${'Notification' in window && Notification.permission !== 'granted' && useWorker() ? `<button class="btn" data-act="notify">${Notification.permission === 'denied' ? 'Benachrichtigungen sind blockiert' : 'Benachrichtigungen erlauben'}</button>` : ''}
   </div>
   <div class="panel">
@@ -1537,7 +1537,7 @@ function viewSettings() {
     <div class="rowbtns"><button class="btn" data-act="export">Sicherung speichern</button><label class="btn ghost" for="importfile">Sicherung laden</label><input type="file" id="importfile" accept="application/json,.json" hidden></div>
     <div class="status" id="backupstatus"></div>
   </div>
-  <p class="sub" style="font-size:13px">${state.recipes.filter((r) => r.status === 'ok').length} Rezepte gespeichert. Rezeptfang Version ${APP_VERSION}.</p>`;
+  <p class="sub" style="font-size:13px">${state.recipes.filter((r) => r.status === 'ok').length} Rezepte gespeichert. ReciGrab Version ${APP_VERSION}.</p>`;
 }
 
 /* ---------- Ereignisse ---------- */
@@ -1615,7 +1615,7 @@ document.addEventListener('click', async (e) => {
     case 'clearall': if (confirm('Ganze Einkaufsliste leeren?')) { state.shopping = []; await db.set('shopping', []); updateShopCount(); render(); } break;
     case 'testkey': testKey(); break;
     case 'notify':
-      if (Notification.permission === 'denied') toast('Benachrichtigungen sind für Rezeptfang blockiert. Erlauben kannst du sie in den Android-Einstellungen der App.');
+      if (Notification.permission === 'denied') toast('Benachrichtigungen sind für ReciGrab blockiert. Erlauben kannst du sie in den Android-Einstellungen der App.');
       else { await Notification.requestPermission(); render(); }
       break;
     case 'export': exportBackup(); break;
@@ -1804,7 +1804,7 @@ function exportBackup() {
   const data = { app: 'rezeptfang', version: 2, exportedAt: new Date().toISOString(), recipes: state.recipes.filter((r) => r.status === 'ok'), shopping: state.shopping };
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = `rezeptfang-sicherung-${new Date().toISOString().slice(0, 10)}.json`;
+  a.href = URL.createObjectURL(blob); a.download = `recigrab-sicherung-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
@@ -1822,7 +1822,7 @@ async function importBackup(file) {
     if (Array.isArray(data.shopping) && confirm('Auch die Einkaufsliste aus der Sicherung übernehmen?')) { state.shopping = data.shopping; await db.set('shopping', state.shopping); updateShopCount(); }
     state.recipes = await db.all();
     st.innerHTML = `<span class="ok">${data.recipes.length} Rezepte geladen.</span>`;
-  } catch (_) { st.innerHTML = '<span class="err">Diese Datei ist keine Rezeptfang-Sicherung.</span>'; }
+  } catch (_) { st.innerHTML = '<span class="err">Diese Datei ist keine ReciGrab-Sicherung.</span>'; }
 }
 
 /* ---------- Start ---------- */

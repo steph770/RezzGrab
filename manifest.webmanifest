@@ -1,6 +1,6 @@
 {
-  "name": "Rezeptfang",
-  "short_name": "Rezeptfang",
+  "name": "ReciGrab",
+  "short_name": "ReciGrab",
   "description": "Rezepte aus YouTube-Videos, Fotos und Screenshots sammeln",
   "lang": "de",
   "start_url": "./",

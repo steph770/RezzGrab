@@ -1,4 +1,4 @@
-# Rezeptfang einrichten
+# ReciGrab einrichten
 
 ## 1. Auf GitHub Pages hochladen (am PC, ca. 5 Minuten)
 
@@ -13,21 +13,21 @@
 
 1. Die Adresse in **Chrome** öffnen.
 2. Menü (drei Punkte) > **App installieren** (oder „Zum Startbildschirm hinzufügen“ > Installieren).
-3. Wichtig: Nur als installierte App erscheint Rezeptfang im Teilen-Menü.
+3. Wichtig: Nur als installierte App erscheint ReciGrab im Teilen-Menü.
 
 ## 3. OpenRouter-Schlüssel
 
 1. Auf openrouter.ai einen eigenen Schlüssel nur für diese App anlegen.
 2. Guardrail anlegen (Workspaces > Guardrails): Modell nur `google/gemini-3.8-flash`, Anbieter nur Google AI Studio, Budget z. B. 1 $ pro Tag, dem Schlüssel zuweisen.
-3. In Rezeptfang unter **Einstellungen** den Schlüssel einfügen, **Speichern**, dann **Schlüssel prüfen**.
+3. In ReciGrab unter **Einstellungen** den Schlüssel einfügen, **Speichern**, dann **Schlüssel prüfen**.
 
 ## Benutzen
 
-- **YouTube:** YouTube-App > Video > **Teilen** > **Rezeptfang**.
-- **Screenshots und Fotos:** Bilder in der Galerie auswählen > **Teilen** > **Rezeptfang**. Bis zu 6 Bilder pro Rezept, z. B. zwei Kochbuchseiten oder mehrere Screenshots aus der NYT-App.
-- **Webseiten und NYT Cooking:** In der NYT-App auf Teilen > **More** > Rezeptfang (oder **Copy Link** und in Rezeptfang einfügen). Als Abonnent ist der geteilte Link ein Geschenk-Link, den OpenRouter abrufen kann. Klappt der Abruf nicht, nimm Screenshots.
+- **YouTube:** YouTube-App > Video > **Teilen** > **ReciGrab**.
+- **Screenshots und Fotos:** Bilder in der Galerie auswählen > **Teilen** > **ReciGrab**. Bis zu 6 Bilder pro Rezept, z. B. zwei Kochbuchseiten oder mehrere Screenshots aus der NYT-App.
+- **Webseiten und NYT Cooking:** In der NYT-App auf Teilen > **More** > ReciGrab (oder **Copy Link** und in ReciGrab einfügen). Als Abonnent ist der geteilte Link ein Geschenk-Link, den OpenRouter abrufen kann. Klappt der Abruf nicht, nimm Screenshots.
 - **Text:** In der App auf **+ Rezept holen** > **Text einfügen**.
-- Der Import dauert je nach Länge 20 Sekunden bis einige Minuten. In der über Chrome installierten App läuft er im Hintergrund weiter, du kannst also zurück zu YouTube wechseln. Unter **Einstellungen > Hintergrund-Import** kannst du Benachrichtigungen erlauben, dann meldet sich Rezeptfang, wenn ein Rezept fertig ist. In Hermit muss die App offen bleiben.
+- Der Import dauert je nach Länge 20 Sekunden bis einige Minuten. In der über Chrome installierten App läuft er im Hintergrund weiter, du kannst also zurück zu YouTube wechseln. Unter **Einstellungen > Hintergrund-Import** kannst du Benachrichtigungen erlauben, dann meldet sich ReciGrab, wenn ein Rezept fertig ist. In Hermit muss die App offen bleiben.
 - **Kacheln anpassen:** Lange auf eine Kachel drücken, dann Bild oder Titelkachel wählen und den Bildausschnitt verschieben. Feiner geht der Ausschnitt unter **Bearbeiten**.
 - **Vorschaubild aus Screenshot:** Bei Rezepten aus Screenshots oder Fotos über das Kachel-Menü oder unter **Bearbeiten** „Vorschaubild aus Screenshot wählen“. Den Screenshot mit dem Finger verschieben und mit zwei Fingern zoomen, bis das Gericht im Quadrat sitzt.
 - **Filtern:** „Nach Tags filtern“ öffnet die Tags. Innerhalb einer Kategorie gilt „oder“, zwischen Kategorien „und“.
