@@ -1,6 +1,6 @@
 // Rezeptfang Service Worker: hält die App offline verfügbar, speichert Vorschaubilder zwischen
 // und nimmt geteilte Inhalte (Links, Texte, Bilder) aus dem Android-Teilen-Menü entgegen.
-const VERSION = 'rf-v8';
+const VERSION = 'rf-v9';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {

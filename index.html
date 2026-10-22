@@ -237,6 +237,17 @@ dialog p{color:var(--muted);margin:0 0 14px}
 .kprev .tile{width:172px;transform:scale(.7442);transform-origin:0 0}
 .kopts{flex:1;min-width:0}
 .kopts input[type=range]{width:100%;accent-color:var(--herb);margin:8px 0 0}
+/* Vorschaubild aus Screenshot wählen */
+#cropdlg{max-height:100dvh;overflow-y:auto}
+#cropdlg h2{margin:0 0 4px}
+.cropvp{width:100%;max-width:400px;margin:10px auto 8px;touch-action:none;cursor:grab;background:#1b1f1d}
+.cropvp .cstage{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+.cropvp .cstage img{inset:auto;position:absolute;left:0;object-fit:fill;max-width:none;pointer-events:none}
+.csrc{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px}
+.csrc button{flex:none;width:64px;height:64px;border-radius:10px;overflow:hidden;border:3px solid transparent;padding:0;background:var(--line);cursor:pointer}
+.csrc button[aria-pressed="true"]{border-color:var(--saffron)}
+.csrc img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.cropzoom{width:100%;accent-color:var(--herb);margin:4px 0 10px}
 </style>
 </head>
 <body>
@@ -278,13 +289,14 @@ dialog p{color:var(--muted);margin:0 0 14px}
 </dialog>
 
 <dialog id="tiledlg"><div id="tdbody"></div></dialog>
+<dialog id="cropdlg"><div id="cropbody"></div></dialog>
 
 <div class="toast" id="toast" role="status"></div>
 
 <script>
 'use strict';
 /* ---------- Konstanten ---------- */
-const APP_VERSION = '2.2 vom 22.10.2026';
+const APP_VERSION = '2.3 vom 22.10.2026';
 const DEFAULT_MODEL = 'google/gemini-3.8-flash';
 const TAXONOMY = {
   Quelle: ['Youtube', 'Buch', 'Zeitung', 'Blog'],
@@ -368,6 +380,7 @@ Schema:
 /* ---------- Hilfsfunktionen ---------- */
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const num = (v) => (v === null || v === undefined || v === '' || !isFinite(Number(v)) ? null : Number(v));
 const uid = () => Math.random().toString(36).slice(2, 9);
 const newId = () => 'r' + Date.now().toString(36) + uid();
@@ -390,9 +403,9 @@ function thumbChain(id, n) {
   return n ? [yt(id, `maxres${n}`), yt(id, `sd${n}`), yt(id, `hq${n}`), ...base] : base;
 }
 const focusOf = (r) => num(r.focus) ?? 50;
-function imgTag(r, extra = '') {
+function imgTag(r, extra = '', ctx = 'tile') {
   const fx = `--fx:${focusOf(r)}%`;
-  if (r.image) return `<img ${extra} src="${r.image}" style="${fx}" alt="">`;
+  if (r.image) return `<img ${extra} src="${ctx === 'hero' && r.hero ? r.hero : r.image}" style="${fx}" alt="">`;
   if (r.videoId) {
     const chain = thumbChain(r.videoId, r.thumb || 0);
     return `<img class="yt" ${extra} src="${chain[0]}" data-chain="${esc(chain.slice(1).join('|'))}" style="${fx}" alt="">`;
@@ -422,13 +435,16 @@ function sourceOf(r) {
 function tileHtml(r, tag = 'a') {
   const mode = tileModeOf(r);
   const [bg, fg] = tileColor(r);
+  const attrs = tag === 'a' ? `href="#/r/${r.id}" data-id="${r.id}" draggable="false"` : '';
+  return `<${tag} class="tile${mode === 'title' ? ' tt' : ''}" ${attrs}${mode === 'title' ? ` style="--tc:${bg};--tf:${fg}"` : ''}>${mode === 'image' ? imgTag(r, tag === 'a' ? 'loading="lazy"' : '') : ''}${tileChrome(r)}</${tag}>`;
+}
+function tileChrome(r) {
   const [icon, label] = sourceOf(r);
   const badge = timeBadge(r.totalTime);
-  const attrs = tag === 'a' ? `href="#/r/${r.id}" data-id="${r.id}" draggable="false"` : '';
-  return `<${tag} class="tile${mode === 'title' ? ' tt' : ''}" ${attrs}${mode === 'title' ? ` style="--tc:${bg};--tf:${fg}"` : ''}>${mode === 'image' ? imgTag(r, tag === 'a' ? 'loading="lazy"' : '') : ''}
+  return `
     <span class="src" role="img" aria-label="${label}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[icon]}</svg></span>
     ${badge ? `<span class="tbadge">${badge}</span>` : ''}
-    <span class="cap"><b>${esc(r.title)}</b>${r.channel ? `<small>${esc(r.channel)}</small>` : ''}</span></${tag}>`;
+    <span class="cap"><b>${esc(r.title)}</b>${r.channel ? `<small>${esc(r.channel)}</small>` : ''}</span>`;
 }
 // Breites Bild im Quadrat: Mittelpunkt des Gerichts (0-1) in eine Ausschnitt-Position (0-100) umrechnen
 function focusFromCenter(c) {
@@ -503,16 +519,44 @@ async function prepImageParts(blob, maxW = 1600, sliceH = 2000, overlap = 120) {
     return parts;
   } finally { URL.revokeObjectURL(src); }
 }
-async function cropDish(dataUrl, box) {
-  const img = await loadImg(dataUrl);
-  const [y0, x0, y1, x1] = box.map((v) => Math.max(0, Math.min(1000, Number(v) || 0)) / 1000);
-  if (y1 <= y0 || x1 <= x0) return null;
-  const x = x0 * img.naturalWidth, y = y0 * img.naturalHeight, w = (x1 - x0) * img.naturalWidth, h = (y1 - y0) * img.naturalHeight;
-  if (w < 120 || h < 80) return null;
-  const s = Math.min(1, 1000 / Math.max(w, h));
-  const c = document.createElement('canvas'); c.width = Math.round(w * s); c.height = Math.round(h * s);
-  c.getContext('2d').drawImage(img, x, y, w, h, 0, 0, c.width, c.height);
-  return c.toDataURL('image/jpeg', 0.82);
+/* Die gespeicherten Teile eines Screenshots wieder zu ganzen Bildern zusammensetzen (Gruppen) */
+async function pageGroups(pages, joins) {
+  const groups = [];
+  for (let i = 0; i < pages.length; i++) {
+    const img = await loadImg(pages[i]);
+    const j = joins?.[i] || 0;
+    if (!j || !groups.length) groups.push({ slices: [], W: img.naturalWidth, H: 0 });
+    const g = groups[groups.length - 1];
+    const off = g.slices.length ? g.H - Math.round(j * g.W) : 0;
+    g.slices.push({ i, img, off, w: img.naturalWidth, h: img.naturalHeight });
+    g.H = off + img.naturalHeight;
+  }
+  return groups;
+}
+/* Quadratischen Ausschnitt (Kachel) und Breitbild (Rezeptansicht) aus einer Gruppe rendern.
+   sel: Mittelpunkt cx/cy und Kantenlänge s, alle relativ zur Bildbreite. heroBox: [x, y, w, h] in Pixeln */
+function bakeSel(g, sel, heroBox) {
+  const W = g.W, H = g.H;
+  const S = Math.min(sel.s * W, W, H);
+  const cx = sel.cx * W, cy = sel.cy * W;
+  const x0 = clamp(cx - S / 2, 0, W - S), y0 = clamp(cy - S / 2, 0, H - S);
+  const draw = (rx, ry, rw, rh, ow, oh) => {
+    const c = document.createElement('canvas'); c.width = ow; c.height = oh;
+    const ctx = c.getContext('2d'); const f = ow / rw;
+    for (const sl of g.slices) {
+      if (sl.off + sl.h < ry || sl.off > ry + rh) continue;
+      ctx.drawImage(sl.img, -rx * f, (sl.off - ry) * f, sl.w * f, sl.h * f);
+    }
+    return c.toDataURL('image/jpeg', 0.85);
+  };
+  const t = Math.min(900, Math.round(S));
+  const image = draw(x0, y0, S, S, t, t);
+  let hx, hy, hw, hh;
+  if (heroBox) [hx, hy, hw, hh] = heroBox;
+  else { hh = S; hw = Math.min(W, S * 16 / 9); hx = clamp(cx - hw / 2, 0, W - hw); hy = y0; }
+  const ow = Math.min(1280, Math.round(hw));
+  const hero = draw(hx, hy, hw, hh, ow, Math.max(1, Math.round(ow * hh / hw)));
+  return { image, hero };
 }
 
 /* ---------- Datenbank (IndexedDB) ---------- */
@@ -785,9 +829,20 @@ async function normalizeAll(data, meta, input) {
       r.thumb = n; if (n) used.add(n);
     }
   }
+  let groups = null;
   for (const r of out) {
     if (input.kind === 'photo' && r.dishPhoto && input.pages[r.dishPhoto.image]) {
-      try { r.image = await cropDish(input.pages[r.dishPhoto.image], r.dishPhoto.box); } catch (_) {}
+      try {
+        groups = groups || await pageGroups(input.pages, input.joins);
+        const gi = groups.findIndex((g) => g.slices.some((sl) => sl.i === r.dishPhoto.image));
+        const g = groups[gi], sl = g.slices.find((x) => x.i === r.dishPhoto.image);
+        const [y0, x0, y1, x1] = r.dishPhoto.box.map((v) => clamp(Number(v) || 0, 0, 1000) / 1000);
+        const bx = x0 * sl.w, by = sl.off + y0 * sl.h, bw = (x1 - x0) * sl.w, bh = (y1 - y0) * sl.h;
+        if (bw >= 120 && bh >= 80) {
+          r.cropSel = { g: gi, cx: (bx + bw / 2) / g.W, cy: (by + bh / 2) / g.W, s: Math.min(bw, bh) / g.W };
+          Object.assign(r, bakeSel(g, r.cropSel, [bx, by, bw, bh]));
+        }
+      } catch (_) {}
     }
     delete r.dishPhoto;
   }
@@ -1060,15 +1115,120 @@ function renderFeed() {
   feed.innerHTML = pendingHtml + shown.map((r) => tileHtml(r)).join('') + none;
 }
 
+/* Vorschaubild aus Screenshot wählen: Bild unter dem Kachel-Quadrat verschieben und zoomen */
+const cropState = { ptrs: new Map() };
+async function openCropper(r) {
+  if (!r.pages?.length) return;
+  const groups = await pageGroups(r.pages, r.pageJoin);
+  const sel = r.cropSel && groups[r.cropSel.g] ? r.cropSel : null;
+  Object.assign(cropState, { r, groups, g: sel ? sel.g : 0, z: 1, tx: 0, ty: 0 });
+  const d = $('#cropdlg');
+  renderCropper();
+  if (!d.open) d.showModal();
+  requestAnimationFrame(() => initCropView(sel));
+}
+function renderCropper() {
+  const { r, groups, g } = cropState;
+  const gr = groups[g];
+  $('#cropbody').innerHTML = `
+    <h2>Vorschaubild wählen</h2>
+    <p class="sub" style="margin:0">Mit einem Finger verschieben, mit zwei Fingern oder dem Regler zoomen.</p>
+    <div class="tile cropvp" id="cropvp"><div class="cstage" id="cstage" style="width:${gr.W}px;height:${gr.H}px">${gr.slices.map((sl) => `<img src="${r.pages[sl.i]}" style="top:${sl.off}px;width:${sl.w}px;height:${sl.h}px" alt="">`).join('')}</div>${tileChrome(r)}</div>
+    <label class="flabel" for="czoom">Zoom</label>
+    <input class="cropzoom" id="czoom" type="range" min="1" max="4" step="0.01" value="1">
+    ${groups.length > 1 ? `<span class="flabel">Bild</span><div class="csrc">${groups.map((x, k) => `<button type="button" data-act="cgroup" data-k="${k}" aria-pressed="${k === g}" aria-label="Bild ${k + 1}"><img src="${r.pages[x.slices[0].i]}" alt=""></button>`).join('')}</div>` : ''}
+    <div class="rowbtns"><button class="btn primary" type="button" data-act="csave">Übernehmen</button><button class="btn ghost" type="button" data-act="cclose">Abbrechen</button></div>`;
+  bindCropPointers();
+}
+function initCropView(sel) {
+  const vp = $('#cropvp'); if (!vp) return;
+  const gr = cropState.groups[cropState.g];
+  const V = vp.getBoundingClientRect().width;
+  const short = Math.min(gr.W, gr.H);
+  Object.assign(cropState, { V, base: V / short, zmax: Math.max(1, short / 240) });
+  $('#czoom').max = cropState.zmax;
+  if (sel && sel.g === cropState.g) {
+    cropState.z = clamp(short / clamp(sel.s * gr.W, 1, short), 1, cropState.zmax);
+    const k = cropState.base * cropState.z;
+    cropState.tx = V / 2 - sel.cx * gr.W * k; cropState.ty = V / 2 - sel.cy * gr.W * k;
+  } else { cropState.z = 1; cropState.tx = 0; cropState.ty = 0; }
+  $('#czoom').value = cropState.z;
+  layoutCrop();
+}
+function layoutCrop() {
+  const { V, base, z } = cropState;
+  const gr = cropState.groups[cropState.g];
+  const k = base * z;
+  cropState.tx = clamp(cropState.tx, V - gr.W * k, 0);
+  cropState.ty = clamp(cropState.ty, V - gr.H * k, 0);
+  $('#cstage').style.transform = `translate(${cropState.tx}px, ${cropState.ty}px) scale(${k})`;
+}
+function zoomCrop(z, ax, ay) {
+  const { V } = cropState;
+  ax = ax ?? V / 2; ay = ay ?? V / 2;
+  const k0 = cropState.base * cropState.z;
+  const z1 = clamp(z, 1, cropState.zmax), k1 = cropState.base * z1;
+  const px = (ax - cropState.tx) / k0, py = (ay - cropState.ty) / k0;
+  Object.assign(cropState, { z: z1, tx: ax - px * k1, ty: ay - py * k1 });
+  layoutCrop();
+  const zs = $('#czoom'); if (zs && document.activeElement !== zs) zs.value = z1;
+}
+function bindCropPointers() {
+  const vp = $('#cropvp'), ps = cropState.ptrs;
+  ps.clear();
+  let last = null;
+  const mid = () => {
+    const a = [...ps.values()];
+    return a.length >= 2 ? { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2, d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) } : { x: a[0].x, y: a[0].y, d: 0 };
+  };
+  vp.addEventListener('pointerdown', (e) => { vp.setPointerCapture(e.pointerId); ps.set(e.pointerId, { x: e.clientX, y: e.clientY }); last = mid(); });
+  vp.addEventListener('pointermove', (e) => {
+    if (!ps.has(e.pointerId)) return;
+    ps.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const m = mid(), rect = vp.getBoundingClientRect();
+    if (last) {
+      if (ps.size >= 2 && last.d && m.d) zoomCrop(cropState.z * m.d / last.d, m.x - rect.left, m.y - rect.top);
+      cropState.tx += m.x - last.x; cropState.ty += m.y - last.y;
+      layoutCrop();
+    }
+    last = m;
+  });
+  const up = (e) => { ps.delete(e.pointerId); last = ps.size ? mid() : null; };
+  vp.addEventListener('pointerup', up);
+  vp.addEventListener('pointercancel', up);
+  vp.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = vp.getBoundingClientRect();
+    zoomCrop(cropState.z * (e.deltaY < 0 ? 1.1 : 1 / 1.1), e.clientX - rect.left, e.clientY - rect.top);
+  }, { passive: false });
+}
+async function saveCrop() {
+  const { r, groups, g, V, base, z, tx, ty } = cropState;
+  const gr = groups[g], k = base * z;
+  const sel = { g, cx: (V / 2 - tx) / k / gr.W, cy: (V / 2 - ty) / k / gr.W, s: V / k / gr.W };
+  Object.assign(r, bakeSel(gr, sel), { cropSel: sel, tileMode: 'image', focus: 50, focusManual: true });
+  delete r.coverPage;
+  await db.put(r);
+  $('#cropdlg').close();
+  const f = $('#editform');
+  if (f) {
+    f.querySelectorAll('[data-act="kmode"]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === 'image')));
+    updatePreview();
+  } else if ((location.hash || '#/') === '#/') renderFeed();
+  else rerenderKeepScroll();
+  toast('Vorschaubild gespeichert.');
+}
+
 /* Menü beim langen Drücken auf eine Kachel */
 function openTileMenu(r) {
-  const img = hasImage(r), mode = tileModeOf(r), wide = !!(r.videoId || r.image);
+  const img = hasImage(r), mode = tileModeOf(r), wide = !!r.videoId && !r.image;
   $('#tdbody').innerHTML = `
     <div class="tdhead"><div class="tdprev">${tileHtml(r, 'div')}</div><h2>${esc(r.title)}</h2></div>
     <span class="flabel">Kachel zeigt</span>
     <div class="seg"><button type="button" data-act="tm" data-id="${r.id}" data-v="image" aria-pressed="${mode === 'image'}" ${img ? '' : 'disabled'}>Bild</button><button type="button" data-act="tm" data-id="${r.id}" data-v="title" aria-pressed="${mode === 'title'}">Titelkachel</button></div>
     ${mode === 'image' && wide ? `<span class="flabel">Bildausschnitt</span>
     <div class="seg">${[['Links', 0], ['Mitte', 50], ['Rechts', 100]].map(([l, v]) => `<button type="button" data-act="tf" data-id="${r.id}" data-v="${v}" aria-pressed="${focusOf(r) === v}">${l}</button>`).join('')}</div>` : ''}
+    ${r.pages?.length ? `<button type="button" class="btn" style="width:100%;justify-content:center;margin:0 0 14px" data-act="crop" data-id="${r.id}">Vorschaubild aus Screenshot wählen …</button>` : ''}
     <div class="rowbtns"><a class="btn primary" href="#/r/${r.id}" data-act="tdclose">Rezept öffnen</a><button class="btn ghost" type="button" data-act="tdclose">Schließen</button></div>`;
   const d = $('#tiledlg');
   if (!d.open) { d.showModal(); d.dataset.openedAt = Date.now(); }
@@ -1103,7 +1263,7 @@ function viewDetail(r) {
   <article>
     ${tileModeOf(r) === 'title'
       ? `<div class="hero slim" style="--tc:${tileColor(r)[0]}"><a class="back" href="#/" aria-label="Zurück zur Übersicht">‹</a></div>`
-      : `<div class="hero">${imgTag(r)}<a class="back" href="#/" aria-label="Zurück zur Übersicht">‹</a></div>`}
+      : `<div class="hero">${imgTag(r, '', 'hero')}<a class="back" href="#/" aria-label="Zurück zur Übersicht">‹</a></div>`}
     <h1 class="dtitle">${esc(r.title)}</h1>
     <div class="dmeta">${r.channel ? `<span>${esc(r.channel)}</span>` : ''}${r.totalTime ? `<span>${fmtTime(r.totalTime, r.totalTimeEst)}</span>` : ''}${isVideo ? `<a href="${videoUrl(r.videoId)}" target="_blank" rel="noopener">Video ansehen</a>` : ''}${r.pages?.length ? '<a href="#originale">Originalseiten</a>' : ''}</div>
     ${(r.tags || []).length ? `<div class="tagrow">${r.tags.map((t) => `<span class="minitag">${esc(t)}</span>`).join('')}</div>` : ''}
@@ -1155,9 +1315,7 @@ function pagesHtml(r) {
 }
 
 function viewEdit(r) {
-  const thumbOpts = r.videoId ? [0, 1, 2, 3].map((n) => ({ key: `v${n}`, html: imgTag({ videoId: r.videoId, thumb: n }, 'loading="lazy"'), on: !r.image && (r.thumb || 0) === n }))
-    : (r.pages || []).map((u, n) => ({ key: `p${n}`, html: `<img src="${u}" alt="" style="object-position:top">`, on: !r.image && (r.coverPage || 0) === n }));
-  if (r.image && !r.videoId) thumbOpts.unshift({ key: 'keep', html: `<img src="${r.image}" alt="">`, on: true });
+  const thumbOpts = r.videoId ? [0, 1, 2, 3].map((n) => ({ key: `v${n}`, html: imgTag({ videoId: r.videoId, thumb: n }, 'loading="lazy"'), on: !r.image && (r.thumb || 0) === n })) : [];
   return `
   <form id="editform" data-id="${r.id}">
     <h1 class="pagetitle">Rezept bearbeiten</h1>
@@ -1175,7 +1333,8 @@ function viewEdit(r) {
         <div class="kopts">
           <span class="flabel">Zeigt</span>
           <div class="seg"><button type="button" data-act="kmode" data-v="image" aria-pressed="${tileModeOf(r) === 'image'}" ${hasImage(r) ? '' : 'disabled'}>Bild</button><button type="button" data-act="kmode" data-v="title" aria-pressed="${tileModeOf(r) === 'title'}">Titel</button></div>
-          ${r.videoId || r.image ? `<label class="flabel" for="kfocus">Bildausschnitt</label><input id="kfocus" type="range" min="0" max="100" step="1" value="${focusOf(r)}">` : ''}
+          ${r.videoId && !r.image ? `<label class="flabel" for="kfocus">Bildausschnitt</label><input id="kfocus" type="range" min="0" max="100" step="1" value="${focusOf(r)}">` : ''}
+          ${r.pages?.length ? `<button type="button" class="btn small" data-act="crop" data-id="${r.id}">Ausschnitt aus Screenshot wählen …</button>` : ''}
         </div>
       </div>
       ${thumbOpts.length > 1 ? `<div class="group-h">Bild</div>
@@ -1312,6 +1471,10 @@ document.addEventListener('click', async (e) => {
       await db.put(r); openTileMenu(r); renderFeed(); break;
     }
     case 'tdclose': $('#tiledlg').close(); break;
+    case 'crop': if (r) { if ($('#tiledlg').open) $('#tiledlg').close(); openCropper(r); } break;
+    case 'cgroup': cropState.g = +el.dataset.k; renderCropper(); requestAnimationFrame(() => initCropView(cropState.r.cropSel)); break;
+    case 'csave': saveCrop(); break;
+    case 'cclose': $('#cropdlg').close(); break;
     case 'kmode': el.parentElement.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === el))); updatePreview(); break;
     case 'retry': {
       if (!r) break;
@@ -1364,6 +1527,7 @@ document.addEventListener('click', async (e) => {
 document.addEventListener('input', (e) => {
   if (e.target.id === 'q') { state.q = e.target.value; renderFeed(); }
   if (e.target.id === 'kfocus') { e.target.dataset.touched = 1; updatePreview(); }
+  if (e.target.id === 'czoom') zoomCrop(+e.target.value);
   if (e.target.form?.id === 'editform' && (e.target.name === 'title' || e.target.name === 'channel')) updatePreview();
 });
 
