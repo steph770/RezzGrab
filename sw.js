@@ -1,5 +1,5 @@
 // Rezeptfang Service Worker: haelt die App offline verfuegbar und speichert Vorschaubilder zwischen.
-const VERSION = 'rf-v1';
+const VERSION = 'rf-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {
