@@ -1,6 +1,6 @@
 {
-  "name": "ReciGrab",
-  "short_name": "ReciGrab",
+  "name": "RezzGrab",
+  "short_name": "RezzGrab",
   "description": "Rezepte aus YouTube-Videos, Fotos und Screenshots sammeln",
   "lang": "de",
   "start_url": "./",

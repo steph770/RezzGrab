@@ -1,34 +1,34 @@
-# ReciGrab einrichten
+# RezzGrab einrichten
 
 ## 1. Auf GitHub Pages hochladen (am PC, ca. 5 Minuten)
 
 1. Auf github.com einloggen, oben rechts **+ > New repository**.
-2. Name: `recigrab`, Sichtbarkeit **Public** (GitHub Pages ist im Gratis-Konto nur für öffentliche Repositories verfügbar). Im Code steht nichts Geheimes, dein Schlüssel bleibt am Handy.
+2. Name: `RezzGrab`, Sichtbarkeit **Public** (GitHub Pages ist im Gratis-Konto nur für öffentliche Repositories verfügbar). Im Code steht nichts Geheimes, dein Schlüssel bleibt am Handy.
 3. **Create repository**, dann auf **uploading an existing file** klicken.
 4. Alle Dateien aus dem ZIP hineinziehen: `index.html`, `manifest.webmanifest`, `sw.js`, `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`. Unten **Commit changes**.
 5. Im Repository **Settings > Pages**: bei *Source* „Deploy from a branch“, Branch `main`, Ordner `/ (root)`, **Save**.
-6. Nach ein bis zwei Minuten ist die App erreichbar unter `https://DEIN-GITHUB-NAME.github.io/recigrab/`.
+6. Nach ein bis zwei Minuten ist die App erreichbar unter `https://DEIN-GITHUB-NAME.github.io/RezzGrab/`.
 
 ## 2. Am Handy installieren
 
 1. Die Adresse in **Chrome** öffnen.
 2. Menü (drei Punkte) > **App installieren** (oder „Zum Startbildschirm hinzufügen“ > Installieren).
-3. Wichtig: Nur als installierte App erscheint ReciGrab im Teilen-Menü.
+3. Wichtig: Nur als installierte App erscheint RezzGrab im Teilen-Menü.
 
 ## 3. OpenRouter-Schlüssel
 
 1. Auf openrouter.ai einen eigenen Schlüssel nur für diese App anlegen.
 2. Guardrail anlegen (Workspaces > Guardrails): Modell nur `google/gemini-3.8-flash`, Anbieter nur Google AI Studio, Budget z. B. 1 $ pro Tag, dem Schlüssel zuweisen.
-3. In ReciGrab unter **Einstellungen** den Schlüssel einfügen, **Speichern**, dann **Schlüssel prüfen**.
+3. In RezzGrab unter **Einstellungen** den Schlüssel einfügen, **Speichern**, dann **Schlüssel prüfen**.
 
 ## Benutzen
 
-- **YouTube:** YouTube-App > Video > **Teilen** > **ReciGrab**.
-- **Screenshots und Fotos:** Bilder in der Galerie auswählen > **Teilen** > **ReciGrab**. Bis zu 6 Bilder pro Rezept, z. B. zwei Kochbuchseiten oder mehrere Screenshots aus der NYT-App.
-- **Webseiten und NYT Cooking:** In der NYT-App auf Teilen > **More** > ReciGrab (oder **Copy Link** und in ReciGrab einfügen). Als Abonnent ist der geteilte Link ein Geschenk-Link, den OpenRouter abrufen kann. Klappt der Abruf nicht, nimm Screenshots.
-- **Instagram:** Beitrag oder Reel teilen > ReciGrab. ReciGrab liest das Rezept aus der Beschreibung. Steht es nur im Video, das Reel in Instagram herunterladen (Teilen > Herunterladen) und die Videodatei an ReciGrab teilen, oder in ReciGrab **+ GRAB > Video** wählen. Videos bis 15 MB.
+- **YouTube:** YouTube-App > Video > **Teilen** > **RezzGrab**.
+- **Screenshots und Fotos:** Bilder in der Galerie auswählen > **Teilen** > **RezzGrab**. Bis zu 6 Bilder pro Rezept, z. B. zwei Kochbuchseiten oder mehrere Screenshots aus der NYT-App.
+- **Webseiten und NYT Cooking:** In der NYT-App auf Teilen > **More** > RezzGrab (oder **Copy Link** und in RezzGrab einfügen). Als Abonnent ist der geteilte Link ein Geschenk-Link, den OpenRouter abrufen kann. Klappt der Abruf nicht, nimm Screenshots.
+- **Instagram:** Beitrag oder Reel teilen > RezzGrab. RezzGrab liest das Rezept aus der Beschreibung. Steht es nur im Video, das Reel in Instagram herunterladen (Teilen > Herunterladen) und die Videodatei an RezzGrab teilen, oder in RezzGrab **+ GRAB > Video** wählen. Videos bis 15 MB.
 - **Text:** In der App auf **+ Rezept holen** > **Text einfügen**.
-- Der Import dauert je nach Länge 20 Sekunden bis einige Minuten. In der über Chrome installierten App läuft er im Hintergrund weiter, du kannst also zurück zu YouTube wechseln. Unter **Einstellungen > Hintergrund-Import** kannst du Benachrichtigungen erlauben, dann meldet sich ReciGrab, wenn ein Rezept fertig ist. In Hermit muss die App offen bleiben.
+- Der Import dauert je nach Länge 20 Sekunden bis einige Minuten. In der über Chrome installierten App läuft er im Hintergrund weiter, du kannst also zurück zu YouTube wechseln. Unter **Einstellungen > Hintergrund-Import** kannst du Benachrichtigungen erlauben, dann meldet sich RezzGrab, wenn ein Rezept fertig ist. In Hermit muss die App offen bleiben.
 - **Kacheln anpassen:** Lange auf eine Kachel drücken, dann Bild oder Titelkachel wählen und den Bildausschnitt verschieben. Feiner geht der Ausschnitt unter **Bearbeiten**.
 - **Vorschaubild aus Screenshot:** Bei Rezepten aus Screenshots oder Fotos über das Kachel-Menü oder unter **Bearbeiten** „Vorschaubild aus Screenshot wählen“. Den Screenshot mit dem Finger verschieben und mit zwei Fingern zoomen, bis das Gericht im Quadrat sitzt.
 - **Filtern:** „Nach Tags filtern“ öffnet die Tags. Innerhalb einer Kategorie gilt „oder“, zwischen Kategorien „und“.
