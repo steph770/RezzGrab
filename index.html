@@ -171,6 +171,31 @@ dialog p{color:var(--muted);margin:0 0 14px}
 .toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 84px);transform:translateX(-50%);z-index:50;
   background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:12px;font-size:15px;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .2s}
 .toast.show{opacity:1}
+
+/* Filter */
+.searchrow{display:flex;gap:8px;align-items:center}
+.searchrow input{flex:1;min-width:0}
+.filterbtn{flex:none;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:11px 16px;font-weight:600;cursor:pointer}
+.filterbtn[aria-expanded="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.filterbtn b{background:var(--saffron);color:#231803;border-radius:999px;padding:0 7px;font-size:13px;margin-left:2px}
+.searchbox .chips{padding-top:10px;padding-bottom:4px}
+.fpanel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 14px 14px;margin-top:10px}
+.frow{padding:6px 0;border-bottom:1px solid var(--line)}
+.frow:last-of-type{border-bottom:0}
+.flabel{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:2px}
+.fpanel .chips{padding:2px 14px 4px;margin:0 -14px}
+.fpanel .rowbtns{margin-top:10px}
+/* Platzhalter ohne Bild */
+.ph{width:100%;height:100%;display:flex;align-items:flex-end;padding:16px;background:var(--herb);color:var(--herb-ink)}
+.ph span{font-size:26px;font-weight:800;line-height:1.05;letter-spacing:-.02em;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.hero .ph span{font-size:34px}
+/* Dialog */
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px;margin:18px 0 12px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+/* Originalseiten */
+.pages{margin:30px 0 0}
+.pages summary{font-size:18px;font-weight:700;cursor:pointer;padding:6px 0}
+.pages img{width:100%;border-radius:12px;margin-top:12px;display:block;border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -191,16 +216,24 @@ dialog p{color:var(--muted);margin:0 0 14px}
 </nav>
 
 <dialog id="adddlg">
-  <form method="dialog" id="addform">
-    <h2>Rezept aus Video holen</h2>
-    <p>Am schnellsten geht es über Teilen in der YouTube-App. Hier kannst du einen Link auch direkt einfügen.</p>
-    <label class="field"><span>YouTube-Link</span><input id="addurl" type="url" inputmode="url" placeholder="https://youtu.be/..." autocomplete="off"></label>
-    <div class="rowbtns">
-      <button class="btn primary" type="submit" value="go">Rezept holen</button>
-      <button class="btn ghost" type="button" id="pastebtn">Aus Zwischenablage</button>
-      <button class="btn ghost" type="submit" value="cancel">Abbrechen</button>
-    </div>
-  </form>
+  <h2>Rezept hinzufügen</h2>
+  <p>Am schnellsten über Teilen: Video aus der YouTube-App, Screenshots oder Fotos an Rezeptfang schicken.</p>
+  <label class="field"><span>YouTube-Link</span><input id="addurl" type="url" inputmode="url" placeholder="https://youtu.be/..." autocomplete="off"></label>
+  <div class="rowbtns">
+    <button class="btn primary" type="button" id="urlgo">Rezept holen</button>
+    <button class="btn ghost" type="button" id="pastebtn">Aus Zwischenablage</button>
+  </div>
+  <div class="or"><span>oder</span></div>
+  <div class="rowbtns">
+    <label class="btn" for="photoin">Fotos oder Screenshots</label>
+    <input id="photoin" type="file" accept="image/*" multiple hidden>
+    <button class="btn" type="button" id="texttoggle">Text einfügen</button>
+  </div>
+  <div id="textbox" hidden>
+    <label class="field"><span>Rezepttext</span><textarea id="addtext" rows="7" placeholder="Zutaten und Zubereitung hier einfügen"></textarea></label>
+    <button class="btn primary" type="button" id="textgo">Rezept erkennen</button>
+  </div>
+  <div class="rowbtns" style="margin-top:16px"><button class="btn ghost" type="button" id="dlgclose">Schließen</button></div>
 </dialog>
 
 <div class="toast" id="toast" role="status"></div>
@@ -208,63 +241,73 @@ dialog p{color:var(--muted);margin:0 0 14px}
 <script>
 'use strict';
 /* ---------- Konstanten ---------- */
+const APP_VERSION = '2.0 vom 22.10.2026';
 const DEFAULT_MODEL = 'google/gemini-3.8-flash';
 const TAXONOMY = {
-  Herkunft: ['Fallow', 'NotAnother', 'KaptnCook', 'KitchenStories'],
-  Kochdauer: ['<20min', '<60min', '1hr+', '3hr+'],
-  Typ: ['main', 'salad', 'dessert', 'side', 'soup', 'starter'],
-  Quelle: ['Buch', 'Zeitung', 'Youtube', 'Blog'],
+  Quelle: ['Youtube', 'Buch', 'Zeitung', 'Blog'],
+  Kochdauer: ['bis 30 Min', 'bis 60 Min', 'über 60 Min'],
+  Gang: ['Vorspeise', 'Suppe', 'Salat', 'Hauptgericht', 'Beilage', 'Dessert'],
+  Hauptzutat: ['Gemüse', 'Hülsenfrüchte', 'Pasta, Reis & Getreide', 'Ei & Käse', 'Fisch & Meeresfrüchte', 'Geflügel', 'Fleisch'],
+  Aufwand: ['Alltag', 'Projekt'],
   'Ernährung': ['vegetarisch'],
 };
 const ALL_TAGS = Object.values(TAXONOMY).flat();
-const CHANNEL_MAP = [
-  [/fallow/i, 'Fallow'],
-  [/not\s*another\s*cooking|notanother/i, 'NotAnother'],
-  [/kptncook|kaptn\s*cook/i, 'KaptnCook'],
-  [/kitchen\s*stories/i, 'KitchenStories'],
-];
+const catOf = (t) => Object.keys(TAXONOMY).find((c) => TAXONOMY[c].includes(t));
+const OLD_TAGS = { main: 'Hauptgericht', salad: 'Salat', dessert: 'Dessert', side: 'Beilage', soup: 'Suppe', starter: 'Vorspeise' };
+const timeTag = (t) => (t ? (t <= 30 ? 'bis 30 Min' : t <= 60 ? 'bis 60 Min' : 'über 60 Min') : null);
 
-const SYSTEM_PROMPT = 'Du extrahierst Kochrezepte aus YouTube-Videos. Du antwortest ausschließlich mit einem einzigen JSON-Objekt nach dem vorgegebenen Schema, ohne Markdown und ohne Text davor oder danach.';
+const SYSTEM_PROMPT = 'Du extrahierst Kochrezepte aus Videos, Bildern und Texten. Du antwortest ausschließlich mit einem einzigen JSON-Objekt nach dem vorgegebenen Schema, ohne Markdown und ohne Text davor oder danach.';
 
-const USER_PROMPT = `Schau dir das Video vollständig an (Bild, Ton, Einblendungen) und extrahiere die Rezepte.
+function buildPrompt(kind) {
+  const video = kind === 'youtube', photo = kind === 'photo';
+  const intro = {
+    youtube: 'Schau dir das Video vollständig an (Bild, Ton, Einblendungen) und extrahiere die Rezepte.',
+    photo: 'Die Bilder zeigen Rezepte: Fotos von Kochbuch- oder Zeitschriftenseiten oder Screenshots von Webseiten und Apps. Mehrere Bilder können zu einem Rezept gehören (z. B. Seite 1 und 2 oder ein langer Screenshot in mehreren Teilen). Lies alles vollständig und extrahiere die Rezepte.',
+    text: 'Unten steht ein Rezepttext, etwa von einer Webseite kopiert. Extrahiere daraus die Rezepte.',
+  }[kind];
+  return `${intro}
 
 Mehrere Rezepte:
-- Zeigt das Video mehrere eigenständige Gerichte (z. B. drei verschiedene Pastagerichte oder ein Menü aus Vorspeise und Hauptgang), lege für jedes Gericht einen eigenen Eintrag in recipes an.
+- Enthält die Quelle mehrere eigenständige Gerichte, lege für jedes einen eigenen Eintrag in recipes an.
 - Komponenten, die zu einem Gericht gehören (Sauce, Dressing, Topping, Teig), bleiben Teil dieses Rezepts und werden über group gekennzeichnet.
-- part_start_s: Sekunde, an der der Teil zu diesem Rezept beginnt. hero_s: Sekunde, an der das fertige Gericht am besten zu sehen ist. Jeweils null, wenn unklar.
+${video ? '- part_start_s: Sekunde, an der der Teil zu diesem Rezept beginnt. hero_s: Sekunde, an der das fertige Gericht am besten zu sehen ist. Jeweils null, wenn unklar.' : ''}${photo ? '- dish_photo: Ist auf einem Bild ein Foto des fertigen Gerichts zu sehen, gib image an (Index des Bildes, 0 = erstes Bild) und box als Begrenzungsrahmen dieses Fotos [ymin, xmin, ymax, xmax] auf einer Skala von 0 bis 1000. Sonst null.' : ''}
 
 Regeln pro Rezept:
 - Alles auf Deutsch, auch Titel und Zutatennamen. Eigennamen von Gerichten dürfen bleiben.
 - Metrische Einheiten. Rechne cups, oz, lb, sticks und fl oz in g (feste Zutaten) oder ml (Flüssigkeiten) um, °F in °C, inch in cm. Runde auf praxisnahe Werte.
 - Erlaubte Einheiten: g, kg, ml, l, EL, TL, Stk, Prise, Bund, Zehe, Dose, Scheibe, Handvoll, Zweig, Blatt. Für ganze Stücke ohne Einheit nimm "Stk".
-- servings: Anzahl Personen. Wird sie im Video genannt, übernimm sie und setze servings_estimated = false. Sonst schätze sie realistisch aus den Mengen (Hauptgericht etwa 150 bis 250 g Hauptzutat pro Person) und setze servings_estimated = true.
-- Mengen: Wird eine Menge im Video gesagt, eingeblendet oder sichtbar abgemessen, übernimm sie mit amount_estimated = false. Fehlt sie, schätze eine realistische Menge passend zu servings und zu dem, was im Video zu sehen ist, und setze amount_estimated = true. Nur bei Salz, Pfeffer und Würzen "nach Geschmack" darf amount null bleiben, dann note = "nach Geschmack".
-- total_time_min: Gesamtzeit in Minuten inklusive Ruhe-, Marinier-, Gär- und Backzeiten, nur wenn sie im Video genannt wird oder sich aus genannten Einzelzeiten summieren lässt. Die Länge des Videos ist keine Kochzeit. Sonst null.
+- servings: Anzahl Personen. Steht sie in der Quelle, übernimm sie mit servings_estimated = false. Sonst schätze sie realistisch aus den Mengen (Hauptgericht etwa 150 bis 250 g Hauptzutat pro Person) und setze servings_estimated = true.
+- Mengen: Steht eine Menge in der Quelle${video ? ' (gesagt, eingeblendet oder sichtbar abgemessen)' : ''}, übernimm sie mit amount_estimated = false. Fehlt sie, schätze eine realistische Menge passend zu servings${video ? ' und zu dem, was im Video zu sehen ist' : ''}, und setze amount_estimated = true. Nur bei Salz, Pfeffer und Würzen "nach Geschmack" darf amount null bleiben, dann note = "nach Geschmack".
+- total_time_min: Gesamtzeit in Minuten inklusive Ruhe-, Marinier-, Gär- und Backzeiten. Steht sie in der Quelle oder lässt sie sich aus genannten Einzelzeiten summieren, setze total_time_estimated = false. Sonst schätze sie realistisch aus den Arbeitsschritten und setze total_time_estimated = true.${video ? ' Die Länge des Videos ist keine Kochzeit.' : ''}
 - ingredients: jede Zutat einmal, mit kurzer id ("z1", "z2", ...) und der Gesamtmenge. group nur bei Komponenten, sonst null. note für Zusätze wie "fein gehackt" oder "zimmerwarm", sonst null. pantry = true für Grundzutaten, die man meist zu Hause hat (Salz, Pfeffer, Zucker, Mehl, neutrales Öl, Olivenöl, Essig, Backpulver, getrocknete Gewürze), sonst false.
-- steps: kurze, klare Arbeitsschritte in der Reihenfolge des Videos, im Imperativ. In uses stehen die Zutaten, die in diesem Schritt verwendet werden, jeweils mit der Menge, die in diesem Schritt verwendet wird (bei Aufteilung die Teilmenge, geschätzte Mengen sind erlaubt). Im text markierst du jede Verwendung mit {0}, {1}, ... (Index in uses). Die App ersetzt jeden Platzhalter durch "Menge Einheit Zutat". Beispiel: "{0} in einer Pfanne schmelzen." wird zu "50 g Butter in einer Pfanne schmelzen." Nenne die Zutat deshalb nicht zusätzlich im Text. timestamp_s: Sekunde im Video, an der der Schritt gezeigt wird, sonst null.
-- typ: genau einer aus main, salad, dessert, side, soup, starter, nach der Rolle im Menü, wie im Video dargestellt. Unklar: null.
+- steps: kurze, klare Arbeitsschritte in der richtigen Reihenfolge, im Imperativ. In uses stehen die Zutaten, die in diesem Schritt verwendet werden, jeweils mit der Menge, die in diesem Schritt verwendet wird (bei Aufteilung die Teilmenge, geschätzte Mengen sind erlaubt). Im text markierst du jede Verwendung mit {0}, {1}, ... (Index in uses). Die App ersetzt jeden Platzhalter durch "Menge Einheit Zutat". Beispiel: "{0} in einer Pfanne schmelzen." wird zu "50 g Butter in einer Pfanne schmelzen." Nenne die Zutat deshalb nicht zusätzlich im Text.${video ? ' timestamp_s: Sekunde im Video, an der der Schritt gezeigt wird, sonst null.' : ''}
+- gang: genau einer aus ${TAXONOMY.Gang.join(', ')}, nach der Rolle im Menü. Unklar: null.
+- hauptzutat: genau einer dieser Werte, wörtlich: ${TAXONOMY.Hauptzutat.map((x) => `"${x}"`).join(', ')}. Gemeint ist die Zutat, die das Gericht prägt. Bei Fleisch- oder Fischgerichten mit viel Gemüse zählt das Fleisch bzw. der Fisch. Passt nichts (z. B. Kuchen): null.
+- aufwand: "Alltag" bei überschaubarer aktiver Arbeit und gängigen Techniken, gut unter der Woche machbar. "Projekt" bei vielen Komponenten, anspruchsvoller Technik oder langer aktiver Arbeit. Lange passive Zeiten (Schmoren, Gehen lassen) allein machen kein Projekt.
 - vegetarisch: true nur, wenn keine Zutat Fleisch, Geflügel, Fisch, Meeresfrüchte, Fleischbrühe, Gelatine, Schmalz, Fischsauce, Sardellen oder Worcestershiresauce ist. Ei, Milchprodukte und Honig sind erlaubt. Eine optionale Fleischbeilage zählt als nicht vegetarisch. false, wenn eine solche Zutat vorkommt. Unklar: null.
-- tips: wichtige Hinweise des Kochs zu Technik oder Varianten, höchstens drei kurze Sätze, sonst null.
-- Ist es kein Kochvideo, setze is_recipe = false und recipes = [].
+${video ? '' : '- quelle: "Buch" für Kochbuchseiten, "Zeitung" für Zeitungen, Zeitschriften und deren Apps oder Webseiten (z. B. NYT Cooking), "Blog" für sonstige Webseiten und Rezeptportale. Unklar: null.\n'}- tips: wichtige Hinweise zu Technik oder Varianten, höchstens drei kurze Sätze, sonst null.
+- Ist gar kein Rezept enthalten, setze is_recipe = false und recipes = [].
 
 Schema:
-{"is_recipe": boolean, "channel": string|null, "video_duration_s": number|null,
- "recipes": [{"title": string, "part_start_s": number|null, "hero_s": number|null,
-   "servings": number, "servings_estimated": boolean, "total_time_min": number|null,
+{"is_recipe": boolean, ${video ? '"channel": string|null, "video_duration_s": number|null' : '"source_name": string|null (Name des Buchs, der Zeitung oder Webseite, wenn erkennbar)'},
+ "recipes": [{"title": string, ${video ? '"part_start_s": number|null, "hero_s": number|null, ' : ''}${photo ? '"dish_photo": {"image": number, "box": [number, number, number, number]}|null, ' : ''}
+   "servings": number, "servings_estimated": boolean, "total_time_min": number, "total_time_estimated": boolean,
    "ingredients": [{"id": string, "group": string|null, "name": string, "amount": number|null, "amount_estimated": boolean, "unit": string|null, "note": string|null, "pantry": boolean}],
-   "steps": [{"text": string, "uses": [{"ref": string, "amount": number|null, "unit": string|null}], "timestamp_s": number|null}],
-   "typ": string|null, "vegetarisch": boolean|null, "tips": string|null}]}`;
+   "steps": [{"text": string, "uses": [{"ref": string, "amount": number|null, "unit": string|null}]${video ? ', "timestamp_s": number|null' : ''}}],
+   "gang": string|null, "hauptzutat": string|null, "aufwand": string|null, "vegetarisch": boolean|null${video ? '' : ', "quelle": string|null'}, "tips": string|null}]}`;
+}
 
 /* ---------- Hilfsfunktionen ---------- */
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const num = (v) => (v === null || v === undefined || v === '' || !isFinite(Number(v)) ? null : Number(v));
 const uid = () => Math.random().toString(36).slice(2, 9);
+const newId = () => 'r' + Date.now().toString(36) + uid();
 
 function toast(msg) {
   const t = $('#toast');
   t.textContent = msg; t.classList.add('show');
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 3200);
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 3600);
 }
 
 function ytId(str) {
@@ -279,8 +322,14 @@ function thumbChain(id, n) {
   return n ? [yt(id, `maxres${n}`), yt(id, `sd${n}`), yt(id, `hq${n}`), ...base] : base;
 }
 function imgTag(r, extra = '') {
-  const chain = thumbChain(r.videoId, r.thumb || 0);
-  return `<img class="yt" ${extra} src="${chain[0]}" data-chain="${esc(chain.slice(1).join('|'))}" alt="">`;
+  if (r.image) return `<img ${extra} src="${r.image}" alt="">`;
+  if (r.videoId) {
+    const chain = thumbChain(r.videoId, r.thumb || 0);
+    return `<img class="yt" ${extra} src="${chain[0]}" data-chain="${esc(chain.slice(1).join('|'))}" alt="">`;
+  }
+  const page = r.pages?.[r.coverPage || 0] || r.input?.pages?.[0];
+  if (page) return `<img ${extra} src="${page}" alt="" style="object-position:top">`;
+  return `<div class="ph"><span>${esc(r.title || 'Rezept')}</span></div>`;
 }
 function pickFrame(t, dur) {
   if (t === null || t === undefined || !dur) return 0;
@@ -289,16 +338,18 @@ function pickFrame(t, dur) {
 }
 const videoUrl = (id, t) => `https://www.youtube.com/watch?v=${id}${t ? `&t=${Math.floor(t)}s` : ''}`;
 
-function fmtTime(min) {
+function fmtTime(min, est) {
   if (!min) return '';
-  if (min < 60) return `${Math.round(min)} Min.`;
+  const p = est ? '≈ ' : '';
+  if (min < 60) return `${p}${Math.round(min)} Min.`;
   const h = Math.floor(min / 60), m = Math.round(min % 60);
-  return m ? `${h} Std. ${m} Min.` : `${h} Std.`;
+  return p + (m ? `${h} Std. ${m} Min.` : `${h} Std.`);
 }
 function fmtStamp(s) { s = Math.floor(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
 
-/* Mengen: in Basiseinheit rechnen, schoen ausgeben */
+/* Mengen: in Basiseinheit rechnen, schön ausgeben */
 const FRACTIONS = { 0.25: '¼', 0.5: '½', 0.75: '¾' };
+const PLURAL = { Zehe: 'Zehen', Dose: 'Dosen', Scheibe: 'Scheiben', Zweig: 'Zweige', Blatt: 'Blätter', Prise: 'Prisen' };
 function toBase(amount, unit) {
   const u = (unit || '').trim();
   if (u === 'kg') return [amount * 1000, 'g'];
@@ -320,9 +371,35 @@ function fmtAmount(amount, unit) {
       s = (whole ? String(whole) : '') + (FRACTIONS[frac] || '');
     }
   }
-  const PLURAL = { Zehe: 'Zehen', Dose: 'Dosen', Scheibe: 'Scheiben', Zweig: 'Zweige', Blatt: 'Blätter', Prise: 'Prisen' };
   if (n > 1 && PLURAL[u]) u = PLURAL[u];
   return u ? `${s} ${u}` : s;
+}
+
+/* Bilder verkleinern und Gericht-Foto ausschneiden */
+const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+async function prepImage(blob, max = 1500) {
+  const src = URL.createObjectURL(blob);
+  try {
+    const img = await loadImg(src);
+    const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.82);
+  } finally { URL.revokeObjectURL(src); }
+}
+async function cropDish(dataUrl, box) {
+  const img = await loadImg(dataUrl);
+  const [y0, x0, y1, x1] = box.map((v) => Math.max(0, Math.min(1000, Number(v) || 0)) / 1000);
+  if (y1 <= y0 || x1 <= x0) return null;
+  let x = x0 * img.naturalWidth, y = y0 * img.naturalHeight, w = (x1 - x0) * img.naturalWidth, h = (y1 - y0) * img.naturalHeight;
+  if (w < 120 || h < 80) return null;
+  const ratio = 16 / 9;
+  if (w / h > ratio) { const nw = h * ratio; x += (w - nw) / 2; w = nw; } else { const nh = w / ratio; y += (h - nh) / 2; h = nh; }
+  const outW = Math.min(960, Math.round(w)), outH = Math.round(outW / ratio);
+  const c = document.createElement('canvas'); c.width = outW; c.height = outH;
+  c.getContext('2d').drawImage(img, x, y, w, h, 0, 0, outW, outH);
+  return c.toDataURL('image/jpeg', 0.8);
 }
 
 /* ---------- Datenbank (IndexedDB) ---------- */
@@ -344,19 +421,45 @@ const db = {
   get: async (k) => p((await os('kv')).get(k)),
   set: async (k, v) => p((await os('kv', 'readwrite')).put(v, k)),
 };
+/* Geteilte Inhalte, die der Service Worker zwischengespeichert hat */
+function inboxTake() {
+  return new Promise((res) => {
+    const r = indexedDB.open('rf-inbox', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('items', { autoIncrement: true });
+    r.onerror = () => res([]);
+    r.onsuccess = () => {
+      const tx = r.result.transaction('items', 'readwrite'), st = tx.objectStore('items');
+      const g = st.getAll();
+      g.onsuccess = () => st.clear();
+      tx.oncomplete = () => res(g.result || []);
+      tx.onerror = () => res([]);
+    };
+  });
+}
 
 /* ---------- Zustand ---------- */
-const state = { recipes: [], shopping: [], settings: { apiKey: '', model: DEFAULT_MODEL }, q: '', tag: null, servings: {}, done: {}, wake: null };
+const state = { recipes: [], shopping: [], settings: { apiKey: '', model: DEFAULT_MODEL }, q: '', filter: {}, showFilter: false, servings: {}, done: {}, wake: null };
+
+function migrateTags(r) {
+  const out = new Set();
+  for (const t of r.tags || []) {
+    if (OLD_TAGS[t]) out.add(OLD_TAGS[t]);
+    else if (ALL_TAGS.includes(t) && catOf(t) !== 'Kochdauer') out.add(t);
+  }
+  const tt = timeTag(r.totalTime); if (tt) out.add(tt);
+  return ALL_TAGS.filter((t) => out.has(t));
+}
 
 async function load() {
   state.recipes = await db.all();
   state.shopping = (await db.get('shopping')) || [];
   state.settings = Object.assign({ apiKey: '', model: DEFAULT_MODEL }, (await db.get('settings')) || {});
-  // Haengengebliebene Importe (App wurde geschlossen) als Fehler markieren
   for (const r of state.recipes) {
-    if (r.status === 'importing' && Date.now() - (r.startedAt || 0) > 4 * 60 * 1000) {
-      r.status = 'error'; r.error = 'Import wurde unterbrochen.'; await db.put(r);
-    }
+    let changed = false;
+    if (r.status === 'importing' && Date.now() - (r.startedAt || 0) > 11 * 60 * 1000) { r.status = 'error'; r.error = 'Import wurde unterbrochen.'; changed = true; }
+    if (!r.kind) { r.kind = r.videoId ? 'youtube' : 'text'; changed = true; }
+    if (r.status === 'ok' && !r.tagsV2) { r.tags = migrateTags(r); r.tagsV2 = true; changed = true; }
+    if (changed) await db.put(r);
   }
   updateShopCount();
 }
@@ -369,13 +472,14 @@ function updateShopCount() {
 /* ---------- KI-Import ---------- */
 function apiError(status, text) {
   let msg = '';
-  try { msg = JSON.parse(text)?.error?.message || ''; } catch (_) { msg = text.slice(0, 160); }
+  try { msg = JSON.parse(text)?.error?.message || ''; } catch (_) { msg = String(text).slice(0, 160); }
   const map = {
     401: 'Der OpenRouter-Schlüssel ist ungültig. Prüfe ihn in den Einstellungen.',
     402: 'Das OpenRouter-Guthaben ist aufgebraucht oder das Tageslimit erreicht.',
     403: 'Anfrage blockiert. Prüfe in der Guardrail, ob Gemini 3.8 Flash und Google AI Studio erlaubt sind.',
-    404: 'Kein passender Anbieter gefunden. Das Video wird nur über Google AI Studio verarbeitet.',
+    404: 'Kein passender Anbieter gefunden. Videos werden nur über Google AI Studio verarbeitet.',
     408: 'Zeitüberschreitung beim Anbieter. Versuch es noch einmal.',
+    413: 'Die Bilder sind zu groß. Versuch es mit weniger Bildern.',
     429: 'Zu viele Anfragen. Warte kurz und versuch es noch einmal.',
   };
   return (map[status] || `Fehler ${status}.`) + (msg ? ` (${msg})` : '');
@@ -383,12 +487,12 @@ function apiError(status, text) {
 
 const DROP_MSG = 'Die Verbindung ist während des Imports abgerissen. Bleib in Rezeptfang und lass den Bildschirm an, bis die Karte fertig ist, dann noch einmal versuchen.';
 
-async function askModel(url, onProgress = () => {}) {
+async function askModel(parts, kind, onProgress = () => {}) {
   const body = {
     model: state.settings.model || DEFAULT_MODEL,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: [{ type: 'text', text: USER_PROMPT }, { type: 'video_url', video_url: { url } }] },
+      { role: 'user', content: [{ type: 'text', text: buildPrompt(kind) }, ...parts] },
     ],
     provider: { only: ['google-ai-studio'], allow_fallbacks: false },
     response_format: { type: 'json_object' },
@@ -419,8 +523,8 @@ async function askModel(url, onProgress = () => {}) {
       else throw new Error(apiError(400, t));
     }
     if (!res.ok) throw new Error(apiError(res.status, await res.text()));
-    onProgress('watch', 0);
-    // Antwort kommt Stueck fuer Stueck (Server-Sent Events), das haelt die Verbindung am Leben
+    onProgress('read', 0);
+    // Antwort kommt Stück für Stück (Server-Sent Events), das hält die Verbindung am Leben
     const reader = res.body.getReader();
     const dec = new TextDecoder();
     let buf = '';
@@ -491,17 +595,22 @@ async function oembed(url) {
   } catch (_) { return null; }
 }
 
-function computeTags(r, typ, veg) {
-  const tags = new Set(['Youtube']);
-  for (const [re, tag] of CHANNEL_MAP) if (re.test(r.channel || '')) tags.add(tag);
-  const t = r.totalTime;
-  if (t) tags.add(t < 20 ? '<20min' : t < 60 ? '<60min' : t < 180 ? '1hr+' : '3hr+');
-  if (TAXONOMY.Typ.includes(typ)) tags.add(typ);
-  if (veg === true) tags.add('vegetarisch');
-  return ALL_TAGS.filter((x) => tags.has(x));
+function matchTag(cat, v) {
+  if (!v) return null;
+  const n = (s) => String(s).toLowerCase().replace(/[^a-zäöüß]/g, '');
+  return TAXONOMY[cat].find((t) => n(t) === n(v)) || null;
+}
+function computeTags(r, x, kind) {
+  const t = new Set();
+  if (kind === 'youtube') t.add('Youtube');
+  else { const q = matchTag('Quelle', x.quelle); if (q && q !== 'Youtube') t.add(q); }
+  const tt = timeTag(r.totalTime); if (tt) t.add(tt);
+  for (const [cat, key] of [['Gang', 'gang'], ['Hauptzutat', 'hauptzutat'], ['Aufwand', 'aufwand']]) { const m = matchTag(cat, x[key]); if (m) t.add(m); }
+  if (x.vegetarisch === true) t.add('vegetarisch');
+  return ALL_TAGS.filter((k) => t.has(k));
 }
 
-function normalizeOne(data, meta, channel) {
+function normalizeOne(data, meta, source, kind) {
   const ings = (Array.isArray(data.ingredients) ? data.ingredients : []).map((i, k) => ({
     id: String(i.id || `z${k + 1}`),
     group: i.group ? String(i.group) : null,
@@ -518,34 +627,38 @@ function normalizeOne(data, meta, channel) {
   const steps = (Array.isArray(data.steps) ? data.steps : []).map((s) => ({
     text: String(s.text || '').trim(),
     uses: (Array.isArray(s.uses) ? s.uses : []).filter((u) => ids.has(String(u.ref))).map((u) => ({ ref: String(u.ref), amount: num(u.amount), unit: u.unit ? String(u.unit).trim() : '' })),
-    t: num(s.timestamp_s),
+    t: kind === 'youtube' ? num(s.timestamp_s) : null,
   })).filter((s) => s.text);
   if (!ings.length && !steps.length) return null;
   const sv = num(data.servings), tt = num(data.total_time_min);
+  const dp = data.dish_photo;
   const r = {
     title: String(data.title || meta?.title || 'Ohne Titel').trim(),
-    originalTitle: meta?.title || '',
-    channel,
+    originalTitle: kind === 'youtube' ? meta?.title || '' : '',
+    channel: source,
     servings: sv && sv > 0 ? sv : null,
     servingsEst: !!(sv && sv > 0 && data.servings_estimated === true),
-    totalTime: tt && tt > 0 ? tt : null,
+    totalTime: tt && tt > 0 ? Math.round(tt) : null,
+    totalTimeEst: !!(tt && tt > 0 && data.total_time_estimated === true),
     ingredients: ings, steps,
     tips: data.tips ? String(data.tips) : '',
-    partStart: num(data.part_start_s),
-    hero: num(data.hero_s),
+    partStart: kind === 'youtube' ? num(data.part_start_s) : null,
+    hero: kind === 'youtube' ? num(data.hero_s) : null,
+    dishPhoto: dp && Array.isArray(dp.box) && dp.box.length === 4 ? { image: num(dp.image) ?? 0, box: dp.box } : null,
+    tagsV2: true,
   };
-  r.tags = computeTags(r, data.typ, data.vegetarisch);
+  r.tags = computeTags(r, data, kind);
   return r;
 }
 
-function normalizeAll(data, meta) {
-  if (data.is_recipe === false) throw new Error('In diesem Video wurde kein Rezept gefunden.');
+async function normalizeAll(data, meta, input) {
+  if (data.is_recipe === false) throw new Error(input.kind === 'youtube' ? 'In diesem Video wurde kein Rezept gefunden.' : 'Darin wurde kein Rezept gefunden.');
   const list = Array.isArray(data.recipes) ? data.recipes : (data.ingredients ? [data] : []);
-  const channel = meta?.author_name || data.channel || '';
-  const out = list.map((x) => normalizeOne(x, meta, channel)).filter(Boolean);
+  const source = input.kind === 'youtube' ? (meta?.author_name || data.channel || '') : (data.source_name ? String(data.source_name) : '');
+  const out = list.map((x) => normalizeOne(x, meta, source, input.kind)).filter(Boolean);
   if (!out.length) throw new Error('Das Modell hat kein verwertbares Rezept geliefert.');
-  // Bei mehreren Rezepten: jedem ein eigenes Standbild aus seinem Videoteil, moeglichst verschieden
-  if (out.length > 1) {
+  if (input.kind === 'youtube' && out.length > 1) {
+    // Jedem Rezept ein eigenes Standbild aus seinem Videoteil, möglichst verschieden
     const dur = num(data.video_duration_s);
     const used = new Set();
     for (const r of out) {
@@ -558,51 +671,115 @@ function normalizeAll(data, meta) {
       r.thumb = n; if (n) used.add(n);
     }
   }
+  for (const r of out) {
+    if (input.kind === 'photo' && r.dishPhoto && input.pages[r.dishPhoto.image]) {
+      try { r.image = await cropDish(input.pages[r.dishPhoto.image], r.dishPhoto.box); } catch (_) {}
+    }
+    delete r.dishPhoto;
+  }
   return out;
 }
 
-let pendingLink = null;
-async function startImport(raw, force = false) {
+/* Bildschirm während des Imports anlassen, damit Android die App nicht pausiert */
+async function holdScreen() {
+  if (state.wake) return null;
+  try { return await navigator.wakeLock.request('screen'); } catch (_) { return null; }
+}
+
+let pendingInput = null;
+function needKey(input) {
+  if (state.settings.apiKey) return false;
+  pendingInput = input; toast('Trag zuerst deinen OpenRouter-Schlüssel ein.'); go('#/einstellungen');
+  return true;
+}
+function siblingsOf(r) {
+  return state.recipes.filter((x) => x.id === r.id || (r.batch && x.batch === r.batch) || (r.videoId && x.videoId === r.videoId));
+}
+function inputOf(r) {
+  if (r.kind === 'youtube' && r.videoId) return { kind: 'youtube', videoId: r.videoId };
+  if (r.input) return r.input;
+  if (r.kind === 'photo' && r.pages?.length) return { kind: 'photo', pages: r.pages };
+  if (r.kind === 'text' && r.sourceText) return { kind: 'text', text: r.sourceText };
+  return null;
+}
+
+async function startImport(raw) {
   const vid = ytId(raw);
-  if (!vid) { toast('Darin steckt kein YouTube-Link.'); return; }
+  if (!vid) {
+    const s = String(raw || '').trim();
+    if (s.length >= 120) return startTextImport(s);
+    if (/https?:\/\//i.test(s)) { toast('Webseiten kann Rezeptfang nicht direkt lesen. Mach Screenshots vom Rezept und teile sie an Rezeptfang.'); return; }
+    toast('Darin steckt kein YouTube-Link.'); return;
+  }
   const siblings = state.recipes.filter((r) => r.videoId === vid);
   const done = siblings.filter((r) => r.status === 'ok');
   if (siblings.some((r) => r.status === 'importing')) { toast('Läuft schon.'); return; }
-  if (done.length && !force) { toast(done.length > 1 ? `Die ${done.length} Rezepte aus diesem Video hast du schon.` : 'Dieses Rezept hast du schon.'); go(done.length > 1 ? '#/' : `#/r/${done[0].id}`); return; }
-  if (!state.settings.apiKey) {
-    pendingLink = raw; toast('Trag zuerst deinen OpenRouter-Schlüssel ein.'); go('#/einstellungen'); return;
-  }
-  const backup = JSON.parse(JSON.stringify(done));
+  if (done.length) { toast(done.length > 1 ? `Die ${done.length} Rezepte aus diesem Video hast du schon.` : 'Dieses Rezept hast du schon.'); go(done.length > 1 ? '#/' : `#/r/${done[0].id}`); return; }
+  const input = { kind: 'youtube', videoId: vid };
+  if (needKey(input)) return;
+  await runImport(input, siblings);
+}
+async function startPhotoImport(blobs) {
+  blobs = [...blobs].filter((b) => b && b.size);
+  if (!blobs.length) return;
+  if (blobs.length > 6) toast('Es werden die ersten 6 Bilder verwendet.');
+  const pages = [];
+  for (const b of blobs.slice(0, 6)) { try { pages.push(await prepImage(b)); } catch (_) {} }
+  if (!pages.length) { toast('Die Bilder konnten nicht gelesen werden.'); return; }
+  const input = { kind: 'photo', pages };
+  if (needKey(input)) return;
+  await runImport(input, []);
+}
+async function startTextImport(text) {
+  text = String(text || '').trim();
+  if (text.length < 40) { toast('Der Text ist zu kurz für ein Rezept.'); return; }
+  const input = { kind: 'text', text: text.slice(0, 30000) };
+  if (needKey(input)) return;
+  await runImport(input, []);
+}
+
+async function runImport(input, siblings) {
+  const backup = JSON.parse(JSON.stringify(siblings.filter((r) => r.status === 'ok')));
   for (const r of siblings) await db.del(r.id);
   const createdAt = siblings[0]?.createdAt || Date.now();
-  const rec = { id: 'r' + Date.now().toString(36) + uid(), videoId: vid, createdAt, tags: [], status: 'importing', startedAt: Date.now(), error: '' };
+  const rec = { id: newId(), kind: input.kind, videoId: input.videoId || null, input: input.kind === 'youtube' ? null : input, createdAt, tags: [], status: 'importing', startedAt: Date.now(), error: '' };
   await db.put(rec);
   go('#/'); await refresh();
   try { navigator.storage?.persist?.(); } catch (_) {}
+  const lock = await holdScreen();
+  const label = { youtube: 'Gemini schaut sich das Video an …', photo: 'Gemini liest die Bilder …', text: 'Gemini liest den Text …' }[input.kind];
+  const progress = (phase, n) => {
+    const el = document.getElementById(`prog-${rec.id}`); if (!el) return;
+    el.textContent = phase === 'read' ? label : n > 1 ? `Schreibt Rezept ${n} …` : 'Schreibt das Rezept …';
+  };
   try {
-    const url = videoUrl(vid);
-    const lock = await holdScreen();
-    const progress = (phase, n) => {
-      const el = document.getElementById(`prog-${rec.id}`); if (!el) return;
-      el.textContent = phase === 'watch' ? 'Gemini schaut sich das Video an …' : n > 1 ? `Schreibt Rezept ${n} …` : 'Schreibt das Rezept …';
-    };
-    let meta, ai;
-    try { [meta, ai] = await Promise.all([oembed(url), askModel(url, progress)]); }
-    finally { if (lock) lock.release().catch(() => {}); }
-    const list = normalizeAll(ai.data, meta);
+    let meta = null, parts;
+    if (input.kind === 'youtube') {
+      const url = videoUrl(input.videoId);
+      parts = [{ type: 'video_url', video_url: { url } }];
+      meta = oembed(url);
+    } else if (input.kind === 'photo') parts = input.pages.map((u) => ({ type: 'image_url', image_url: { url: u } }));
+    else parts = [{ type: 'text', text: `Rezepttext:\n\n${input.text}` }];
+    const ai = await askModel(parts, input.kind, progress);
+    meta = await meta;
+    const list = await normalizeAll(ai.data, meta, input);
     await db.del(rec.id);
     const cost = ai.cost !== null && ai.cost !== undefined ? ai.cost / list.length : null;
     for (let k = 0; k < list.length; k++) {
-      // Reihenfolge im Feed: erstes Rezept zuoberst
-      await db.put({ ...list[k], id: k ? 'r' + Date.now().toString(36) + uid() : rec.id, videoId: vid, createdAt: createdAt - k, status: 'ok', importedAt: Date.now(), cost, part: list.length > 1 ? k + 1 : 0, partsTotal: list.length });
+      await db.put({
+        ...list[k], id: k ? newId() : rec.id, batch: rec.id, kind: input.kind,
+        videoId: input.videoId || null, pages: input.pages || null, sourceText: input.text || null,
+        createdAt: createdAt - k, status: 'ok', importedAt: Date.now(), cost,
+        part: list.length > 1 ? k + 1 : 0, partsTotal: list.length,
+      });
     }
     await refresh();
-    toast((list.length > 1 ? `${list.length} Rezepte aus dem Video gespeichert.` : `„${list[0].title}“ ist gespeichert.`) + (ai.truncated ? ' Die Antwort war abgeschnitten, eventuell fehlen Rezepte. Tippe auf „Neu einlesen“.' : ''));
+    toast((list.length > 1 ? `${list.length} Rezepte gespeichert.` : `„${list[0].title}“ ist gespeichert.`) + (ai.truncated ? ' Die Antwort war abgeschnitten, eventuell fehlen Rezepte. Tippe auf „Neu einlesen“.' : ''));
   } catch (e) {
     if (backup.length) { await db.del(rec.id); for (const b of backup) await db.put(b); toast(e.message); }
     else { rec.status = 'error'; rec.error = e.message; await db.put(rec); }
     await refresh();
-  }
+  } finally { if (lock) lock.release().catch(() => {}); }
 }
 
 /* ---------- Skalierung ---------- */
@@ -621,7 +798,7 @@ function useFor(r, use) {
     const count = r.steps.filter((s) => s.uses.some((u) => u.ref === use.ref)).length;
     if (count === 1) { amount = ing.amount; unit = ing.unit; }
   }
-  return { ing, amount, unit: unit || ing.unit, est: ing.est || (use.amount === null && ing.est) };
+  return { ing, amount, unit: unit || ing.unit, est: !!ing.est };
 }
 
 /* ---------- Ansichten ---------- */
@@ -652,11 +829,16 @@ function render() {
 function viewList() {
   const ok = state.recipes.filter((r) => r.status === 'ok');
   const present = new Set(ok.flatMap((r) => r.tags || []));
-  const chips = ALL_TAGS.filter((t) => present.has(t));
+  const active = Object.entries(state.filter);
+  const cats = Object.keys(TAXONOMY).filter((c) => TAXONOMY[c].some((t) => present.has(t)));
   return `
-  <header class="masthead"><h1 class="wordmark">Rezeptfang<span>${ok.length ? `${ok.length} ${ok.length === 1 ? 'Rezept' : 'Rezepte'} aus Kochvideos` : 'Rezepte aus Kochvideos'}</span></h1></header>
-  ${ok.length ? `<div class="searchbox"><label class="sr" for="q">Suchen</label><input id="q" type="search" placeholder="Gericht, Zutat oder Kanal suchen" value="${esc(state.q)}" autocomplete="off"></div>
-  ${chips.length ? `<div class="chips"><button class="chip" data-tag="" aria-pressed="${!state.tag}">Alle</button>${chips.map((t) => `<button class="chip" data-tag="${esc(t)}" aria-pressed="${state.tag === t}">${esc(t)}</button>`).join('')}</div>` : ''}` : ''}
+  <header class="masthead"><h1 class="wordmark">Rezeptfang<span>${ok.length ? `${ok.length} ${ok.length === 1 ? 'Rezept' : 'Rezepte'} in deiner Sammlung` : 'Rezepte aus Videos, Büchern und Screenshots'}</span></h1></header>
+  ${ok.length ? `<div class="searchbox"><div class="searchrow"><label class="sr" for="q">Suchen</label><input id="q" type="search" placeholder="Gericht oder Zutat suchen" value="${esc(state.q)}" autocomplete="off">
+    ${cats.length ? `<button class="filterbtn" data-act="togglefilter" aria-expanded="${state.showFilter}">Filter${active.length ? ` <b>${active.length}</b>` : ''}</button>` : ''}</div>
+    ${active.length && !state.showFilter ? `<div class="chips">${active.map(([c, t]) => `<button class="chip" data-act="unfilter" data-cat="${esc(c)}" aria-pressed="true">${esc(t)} ×</button>`).join('')}</div>` : ''}
+    ${state.showFilter ? `<div class="fpanel">${cats.map((c) => `<div class="frow"><span class="flabel">${esc(c)}</span><div class="chips">${TAXONOMY[c].filter((t) => present.has(t)).map((t) => `<button class="chip" data-act="filter" data-cat="${esc(c)}" data-tag="${esc(t)}" aria-pressed="${state.filter[c] === t}">${esc(t)}</button>`).join('')}</div></div>`).join('')}
+      <div class="rowbtns">${active.length ? '<button class="btn small ghost" data-act="clearfilter">Filter zurücksetzen</button>' : ''}<button class="btn small" data-act="togglefilter">Fertig</button></div></div>` : ''}
+  </div>` : ''}
   <div class="feed" id="feed"></div>`;
 }
 
@@ -665,33 +847,38 @@ function matches(r, q) {
   const hay = [r.title, r.originalTitle, r.channel, ...(r.tags || []), ...(r.ingredients || []).map((i) => i.name)].join(' ').toLowerCase();
   return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
 }
+const passesFilter = (r) => Object.values(state.filter).every((t) => (r.tags || []).includes(t));
 
 function renderFeed() {
   const feed = $('#feed'); if (!feed) return;
   const list = state.recipes.slice().sort((a, b) => b.createdAt - a.createdAt);
   const pending = list.filter((r) => r.status !== 'ok');
-  const shown = list.filter((r) => r.status === 'ok' && matches(r, state.q) && (!state.tag || (r.tags || []).includes(state.tag)));
+  const shown = list.filter((r) => r.status === 'ok' && matches(r, state.q) && passesFilter(r));
   if (!list.length) {
     feed.innerHTML = `<div class="empty"><h2>Noch keine Rezepte.</h2>
-      <p>Öffne ein Kochvideo in der YouTube-App, tippe auf Teilen und wähle Rezeptfang. Zutaten und Schritte landen dann hier.</p>
+      <p>Teile ein Kochvideo aus der YouTube-App, Screenshots eines Rezepts oder Fotos von Kochbuchseiten an Rezeptfang. Zutaten und Schritte landen dann hier.</p>
       <p>${state.settings.apiKey ? '' : 'Vorher einmal in den Einstellungen deinen OpenRouter-Schlüssel eintragen.'}</p></div>`;
     return;
   }
+  const what = { youtube: 'aus dem Video', photo: 'aus den Bildern', text: 'aus dem Text' };
   const pendingHtml = pending.map((r) => `
     <div class="card"><div class="thumb">${imgTag(r)}
       <div class="state">${r.status === 'importing'
-        ? `<strong>Rezept wird aus dem Video gelesen</strong><span id="prog-${r.id}">Verbinde mit OpenRouter …</span><span style="font-size:13px;opacity:.8">Lange Videos brauchen bis zu einige Minuten. Bitte in der App bleiben.</span><div class="bar"><i></i></div>`
+        ? `<strong>Rezept wird ${what[r.kind] || ''} gelesen</strong><span id="prog-${r.id}">Verbinde mit OpenRouter …</span><span style="font-size:13px;opacity:.8">Das kann bis zu einige Minuten dauern. Bitte in der App bleiben.</span><div class="bar"><i></i></div>`
         : `<strong>Import fehlgeschlagen</strong><span>${esc(r.error)}</span>
            <div class="rowbtns"><button class="btn small primary" data-act="retry" data-id="${r.id}">Erneut versuchen</button><button class="btn small ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" data-act="remove" data-id="${r.id}">Entfernen</button></div>`}
       </div></div></div>`).join('');
-  const cards = shown.map((r) => `
+  const cards = shown.map((r) => {
+    const tags = (r.tags || []).filter((t) => catOf(t) !== 'Quelle' && catOf(t) !== 'Kochdauer');
+    return `
     <a class="card" href="#/r/${r.id}">
-      <div class="thumb">${imgTag(r, 'loading="lazy"')}${r.totalTime ? `<span class="badge">${fmtTime(r.totalTime)}</span>` : ''}</div>
+      <div class="thumb">${imgTag(r, 'loading="lazy"')}${r.totalTime ? `<span class="badge">${fmtTime(r.totalTime, r.totalTimeEst)}</span>` : ''}</div>
       <h2>${esc(r.title)}</h2>
-      <p class="meta">${esc(r.channel)}</p>
-      ${(r.tags || []).filter((t) => t !== 'Youtube').length ? `<div class="minitags">${r.tags.filter((t) => t !== 'Youtube').map((t) => `<span class="minitag">${esc(t)}</span>`).join('')}</div>` : ''}
-    </a>`).join('');
-  const none = !shown.length && (state.q || state.tag) ? `<div class="empty"><h2>Nichts gefunden.</h2><p>Probier einen anderen Suchbegriff oder tippe auf „Alle“.</p></div>` : '';
+      <p class="meta">${esc(r.channel || { photo: 'Aus Fotos', text: 'Aus Text' }[r.kind] || '')}</p>
+      ${tags.length ? `<div class="minitags">${tags.map((t) => `<span class="minitag">${esc(t)}</span>`).join('')}</div>` : ''}
+    </a>`;
+  }).join('');
+  const none = !shown.length && (state.q || Object.keys(state.filter).length) ? `<div class="empty"><h2>Nichts gefunden.</h2><p>Probier einen anderen Suchbegriff oder setz die Filter zurück.</p></div>` : '';
   feed.innerHTML = pendingHtml + cards + none;
 }
 
@@ -711,22 +898,26 @@ function stepHtml(r, s, f) {
 function viewDetail(r) {
   const f = factorFor(r);
   const cur = r.servings ? Math.round(r.servings * f * 100) / 100 : f;
-  const missing = r.ingredients.filter((i) => i.amount === null && !i.pantry && !/geschmack/i.test(i.note)).length;
+  const noteless = (i) => !/geschmack/i.test(i.note);
+  const missing = r.ingredients.filter((i) => i.amount === null && !i.pantry && noteless(i)).length;
   const estimated = r.ingredients.filter((i) => i.est).length;
+  const estParts = [r.servingsEst ? 'die Personenzahl' : '', r.totalTimeEst ? 'die Gesamtzeit' : '', estimated ? (estimated === 1 ? 'eine Zutatenmenge' : `${estimated} Zutatenmengen`) : ''].filter(Boolean);
+  const estText = estParts.length ? estParts.slice(0, -1).join(', ') + (estParts.length > 1 ? ' und ' : '') + estParts[estParts.length - 1] : '';
   const groups = [];
   for (const i of r.ingredients) { let g = groups.find((x) => x.name === (i.group || '')); if (!g) groups.push(g = { name: i.group || '', items: [] }); g.items.push(i); }
   const done = state.done[r.id] || new Set();
+  const isVideo = !!r.videoId;
   return `
   <article>
     <div class="hero">${imgTag(r)}<a class="back" href="#/" aria-label="Zurück zur Übersicht">‹</a></div>
     <h1 class="dtitle">${esc(r.title)}</h1>
-    <div class="dmeta"><span>${esc(r.channel)}</span>${r.totalTime ? `<span>${fmtTime(r.totalTime)}</span>` : ''}<a href="${videoUrl(r.videoId)}" target="_blank" rel="noopener">Video ansehen</a></div>
+    <div class="dmeta">${r.channel ? `<span>${esc(r.channel)}</span>` : ''}${r.totalTime ? `<span>${fmtTime(r.totalTime, r.totalTimeEst)}</span>` : ''}${isVideo ? `<a href="${videoUrl(r.videoId)}" target="_blank" rel="noopener">Video ansehen</a>` : ''}${r.pages?.length ? '<a href="#originale">Originalseiten</a>' : ''}</div>
     ${(r.tags || []).length ? `<div class="tagrow">${r.tags.map((t) => `<span class="minitag">${esc(t)}</span>`).join('')}</div>` : ''}
-    ${estimated || r.servingsEst ? `<p class="notice">${[r.servingsEst ? 'Die Personenzahl' : '', estimated ? (estimated === 1 ? 'eine Zutatenmenge' : `${estimated} Zutatenmengen`) : ''].filter(Boolean).join(' und ').replace(/^./, (c) => c.toUpperCase())} ${r.servingsEst && !estimated ? 'nennt' : 'nennen'} das Video nicht. Geschätzte Werte sind mit ≈ markiert und lassen sich unter „Bearbeiten“ korrigieren.</p>` : ''}
+    ${estText ? `<p class="notice">${estText.replace(/^./, (c) => c.toUpperCase())} ${estParts.length > 1 || estimated > 1 ? 'sind' : 'ist'} geschätzt und mit ≈ markiert. Korrigieren kannst du das unter „Bearbeiten“.</p>` : ''}
     ${missing ? `<p class="notice">${missing === 1 ? 'Bei einer Zutat' : `Bei ${missing} Zutaten`} fehlt die Menge. Du kannst sie unter „Bearbeiten“ ergänzen.</p>` : ''}
-    ${r.partsTotal > 1 ? `<p class="dmeta" style="margin-top:10px">Rezept ${r.part} von ${r.partsTotal} aus diesem Video${r.partStart ? `, <a href="${videoUrl(r.videoId, r.partStart)}" target="_blank" rel="noopener">ab ${fmtStamp(r.partStart)}</a>` : ''}</p>` : ''}
+    ${r.partsTotal > 1 ? `<p class="dmeta" style="margin-top:10px">Rezept ${r.part} von ${r.partsTotal} aus ${isVideo ? 'diesem Video' : 'dieser Quelle'}${isVideo && r.partStart ? `, <a href="${videoUrl(r.videoId, r.partStart)}" target="_blank" rel="noopener">ab ${fmtStamp(r.partStart)}</a>` : ''}</p>` : ''}
 
-    <div class="servings" role="group" aria-label="Portionen">
+    <div class="servings" role="group" aria-label="Personen">
       <button data-act="less" data-id="${r.id}" aria-label="Weniger">−</button>
       <div class="val"><strong>${r.servings ? `${r.servingsEst ? '≈ ' : ''}${String(cur).replace('.', ',')}` : `× ${String(cur).replace('.', ',')}`}</strong><span>${r.servings ? `${cur === 1 ? 'Person' : 'Personen'}${r.servingsEst ? ' (geschätzt)' : ''}` : 'Menge'}</span></div>
       <button data-act="more" data-id="${r.id}" aria-label="Mehr">+</button>
@@ -739,18 +930,19 @@ function viewDetail(r) {
     <h2 class="section-h">Zutaten</h2>
     ${groups.map((g) => `${g.name ? `<h3 class="group-h">${esc(g.name)}</h3>` : ''}<ul class="ings">${g.items.map((i) => `
       <li><span class="amt${i.est ? ' est' : ''}">${i.est && i.amount !== null ? '≈ ' : ''}${esc(fmtAmount(scale(i.amount, f), i.unit))}</span>
-      <span>${esc(i.name)}${i.note ? ` <span class="note">${esc(i.note)}</span>` : ''}${i.est ? '<span class="missing">geschätzt</span>' : ''}${i.amount === null && !i.pantry && !/geschmack/i.test(i.note) ? '<span class="missing">Menge fehlt</span>' : ''}</span></li>`).join('')}</ul>`).join('')}
+      <span>${esc(i.name)}${i.note ? ` <span class="note">${esc(i.note)}</span>` : ''}${i.est ? '<span class="missing">geschätzt</span>' : ''}${i.amount === null && !i.pantry && noteless(i) ? '<span class="missing">Menge fehlt</span>' : ''}</span></li>`).join('')}</ul>`).join('')}
 
     <h2 class="section-h">Zubereitung</h2>
     <ol class="steps">${r.steps.map((s, k) => `
       <li class="${done.has(k) ? 'done' : ''}" data-act="step" data-id="${r.id}" data-k="${k}"><div><p>${stepHtml(r, s, f)}</p>
-      ${s.t !== null && s.t !== undefined ? `<a class="ts" href="${videoUrl(r.videoId, s.t)}" target="_blank" rel="noopener">Im Video ab ${fmtStamp(s.t)}</a>` : ''}</div></li>`).join('')}</ol>
+      ${isVideo && s.t !== null && s.t !== undefined ? `<a class="ts" href="${videoUrl(r.videoId, s.t)}" target="_blank" rel="noopener">Im Video ab ${fmtStamp(s.t)}</a>` : ''}</div></li>`).join('')}</ol>
 
-    ${r.tips ? `<h2 class="section-h">Tipps aus dem Video</h2><p class="tips">${esc(r.tips)}</p>` : ''}
+    ${r.tips ? `<h2 class="section-h">Tipps</h2><p class="tips">${esc(r.tips)}</p>` : ''}
+    ${r.pages?.length ? `<details class="pages" id="originale"><summary>Originalseiten (${r.pages.length})</summary>${r.pages.map((u) => `<img src="${u}" alt="Originalseite" loading="lazy">`).join('')}</details>` : ''}
 
     <div class="foot">
       <a class="btn ghost" href="#/r/${r.id}/bearbeiten">Bearbeiten</a>
-      <button class="btn ghost" data-act="reimport" data-id="${r.id}">Neu einlesen</button>
+      ${inputOf(r) ? `<button class="btn ghost" data-act="reimport" data-id="${r.id}">Neu einlesen</button>` : ''}
       <button class="btn ghost danger" data-act="delete" data-id="${r.id}">Löschen</button>
     </div>
     ${r.cost ? `<p class="cost">Import hat ${decimal(r.cost, 3)} $ gekostet.</p>` : ''}
@@ -758,24 +950,28 @@ function viewDetail(r) {
 }
 
 function viewEdit(r) {
+  const thumbOpts = r.videoId ? [0, 1, 2, 3].map((n) => ({ key: `v${n}`, html: imgTag({ videoId: r.videoId, thumb: n }, 'loading="lazy"'), on: !r.image && (r.thumb || 0) === n }))
+    : (r.pages || []).map((u, n) => ({ key: `p${n}`, html: `<img src="${u}" alt="" style="object-position:top">`, on: !r.image && (r.coverPage || 0) === n }));
+  if (r.image && !r.videoId) thumbOpts.unshift({ key: 'keep', html: `<img src="${r.image}" alt="">`, on: true });
   return `
   <form id="editform" data-id="${r.id}">
     <h1 class="pagetitle">Rezept bearbeiten</h1>
-    <p class="sub">${esc(r.originalTitle || r.title)}</p>
+    <p class="sub">${esc(r.originalTitle || r.channel || r.title)}</p>
     <label class="field"><span>Titel</span><input name="title" value="${esc(r.title)}"></label>
+    <label class="field"><span>Quelle</span><input name="channel" value="${esc(r.channel)}" placeholder="z. B. Buchtitel oder Webseite"></label>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <label class="field"><span>Personen${r.servingsEst ? ' (geschätzt)' : ''}</span><input name="servings" type="number" inputmode="decimal" min="0" step="0.5" value="${r.servings ?? ''}"></label>
-      <label class="field"><span>Gesamtzeit (Min.)</span><input name="totalTime" type="number" inputmode="numeric" min="0" value="${r.totalTime ?? ''}"></label>
+      <label class="field"><span>Gesamtzeit (Min.)${r.totalTimeEst ? ' (geschätzt)' : ''}</span><input name="totalTime" type="number" inputmode="numeric" min="0" value="${r.totalTime ?? ''}"></label>
     </div>
 
-    <div class="panel"><h3>Vorschaubild</h3>
-      <small style="color:var(--muted)">Das Standardbild des Videos oder eines von drei automatischen Standbildern aus dem Video.</small>
-      <div class="thumbpick">${[0, 1, 2, 3].map((n) => `<button type="button" data-act="thumbpick" data-n="${n}" aria-pressed="${(r.thumb || 0) === n}" aria-label="${n ? `Standbild ${n}` : 'Standardbild'}">${imgTag({ videoId: r.videoId, thumb: n }, 'loading="lazy"')}</button>`).join('')}</div>
-    </div>
+    ${thumbOpts.length > 1 ? `<div class="panel"><h3>Vorschaubild</h3>
+      ${r.videoId ? '<small style="color:var(--muted)">Das Standardbild des Videos oder eines von drei automatischen Standbildern aus dem Video.</small>' : ''}
+      <div class="thumbpick">${thumbOpts.map((o) => `<button type="button" data-act="thumbpick" data-n="${o.key}" aria-pressed="${o.on}">${o.html}</button>`).join('')}</div>
+    </div>` : ''}
 
     <div class="panel"><h3>Tags</h3>
-      ${Object.entries(TAXONOMY).map(([cat, tags]) => `<div class="group-h">${esc(cat)}</div><div class="tagpick">${tags.map((t) => `<button type="button" class="chip" data-act="tagtoggle" data-tag="${esc(t)}" aria-pressed="${(r.tags || []).includes(t)}">${esc(t)}</button>`).join('')}</div>`).join('')}
-      <small style="color:var(--muted)">Pro Kategorie ein Tag, „vegetarisch“ kommt zusätzlich dazu.</small>
+      ${Object.entries(TAXONOMY).filter(([cat]) => cat !== 'Kochdauer').map(([cat, tags]) => `<div class="group-h">${esc(cat)}</div><div class="tagpick">${tags.map((t) => `<button type="button" class="chip" data-act="tagtoggle" data-tag="${esc(t)}" aria-pressed="${(r.tags || []).includes(t)}">${esc(t)}</button>`).join('')}</div>`).join('')}
+      <small style="color:var(--muted)">Pro Kategorie ein Tag. Die Kochdauer ergibt sich aus der Gesamtzeit.</small>
     </div>
 
     <div class="panel"><h3>Zutaten</h3>
@@ -802,7 +998,7 @@ function viewEdit(r) {
 }
 function ingRow(i) {
   return `<div class="ed-ing" data-iid="${esc(i.id)}" data-est="${i.est ? 1 : ''}" data-orig="${i.amount ?? ''}">
-    <input aria-label="Menge" data-f="amount" inputmode="decimal" value="${i.amount ?? ''}" ${i.est ? 'placeholder="≈" style="border-style:dashed"' : ''}>
+    <input aria-label="Menge" data-f="amount" inputmode="decimal" value="${i.amount ?? ''}" ${i.est ? 'style="border-style:dashed"' : ''}>
     <input aria-label="Einheit" data-f="unit" value="${esc(i.unit)}">
     <input aria-label="Zutat" data-f="name" value="${esc(i.name)}">
     <button type="button" class="x" data-act="deling" aria-label="Zutat entfernen">×</button></div>`;
@@ -827,7 +1023,7 @@ function viewShop() {
 async function addToShop(r) {
   const f = factorFor(r);
   for (const i of r.ingredients) {
-    let [amount, unit] = i.amount === null ? [null, i.unit] : toBase(i.amount * f, i.unit);
+    const [amount, unit] = i.amount === null ? [null, i.unit] : toBase(i.amount * f, i.unit);
     const key = `${i.name.toLowerCase().trim()}|${unit}`;
     const hit = state.shopping.find((s) => !s.checked && s.key === key);
     if (hit) {
@@ -860,42 +1056,58 @@ function viewSettings() {
     <div class="rowbtns"><button class="btn" data-act="export">Sicherung speichern</button><label class="btn ghost" for="importfile">Sicherung laden</label><input type="file" id="importfile" accept="application/json,.json" hidden></div>
     <div class="status" id="backupstatus"></div>
   </div>
-  <p class="sub" style="font-size:13px">${state.recipes.filter((r) => r.status === 'ok').length} Rezepte gespeichert. Rezeptfang Version 1.4 vom 22.10.2026.</p>`;
+  <p class="sub" style="font-size:13px">${state.recipes.filter((r) => r.status === 'ok').length} Rezepte gespeichert. Rezeptfang Version ${APP_VERSION}.</p>`;
 }
 
 /* ---------- Ereignisse ---------- */
+function rerenderKeepScroll() { const y = scrollY; render(); scrollTo(0, y); }
+
 document.addEventListener('click', async (e) => {
-  const el = e.target.closest('[data-act], .chip[data-tag]');
+  const el = e.target.closest('[data-act]');
   if (!el) return;
-  if (el.matches('.chip[data-tag]') && !el.dataset.act) {
-    state.tag = el.dataset.tag || null;
-    document.querySelectorAll('.chips .chip').forEach((c) => c.setAttribute('aria-pressed', String((c.dataset.tag || null) === state.tag)));
-    renderFeed(); return;
-  }
   const act = el.dataset.act, id = el.dataset.id;
   const r = id ? state.recipes.find((x) => x.id === id) : null;
   switch (act) {
-    case 'retry': if (r) startImport(videoUrl(r.videoId)); break;
+    case 'togglefilter': state.showFilter = !state.showFilter; render(); break;
+    case 'filter': {
+      const c = el.dataset.cat, t = el.dataset.tag;
+      if (state.filter[c] === t) delete state.filter[c]; else state.filter[c] = t;
+      render(); break;
+    }
+    case 'unfilter': delete state.filter[el.dataset.cat]; render(); break;
+    case 'clearfilter': state.filter = {}; render(); break;
+    case 'retry': {
+      if (!r) break;
+      if (r.kind === 'youtube' && r.videoId) { await db.del(r.id); state.recipes = state.recipes.filter((x) => x.id !== r.id); startImport(videoUrl(r.videoId)); }
+      else if (r.input) { if (!needKey(r.input)) runImport(r.input, [r]); }
+      break;
+    }
     case 'remove': if (r) { await db.del(r.id); refresh(); } break;
     case 'less': case 'more': {
       const stepSize = r.servings ? (r.servings >= 2 ? 1 : 0.5) : 0.5;
       const curVal = r.servings ? (state.servings[r.id] ?? r.servings) : (state.servings[r.id] ?? 1);
-      const next = Math.max(stepSize, curVal + (act === 'more' ? stepSize : -stepSize));
-      state.servings[r.id] = next; const y = scrollY; render(); scrollTo(0, y); break;
+      state.servings[r.id] = Math.max(stepSize, curVal + (act === 'more' ? stepSize : -stepSize));
+      rerenderKeepScroll(); break;
     }
     case 'toshop': if (r) addToShop(r); break;
-    case 'wake': await toggleWake(); { const y = scrollY; render(); scrollTo(0, y); } break;
+    case 'wake': await toggleWake(); rerenderKeepScroll(); break;
     case 'step': {
       if (e.target.closest('a')) return;
       const set = state.done[id] || (state.done[id] = new Set()); const k = +el.dataset.k;
       set.has(k) ? set.delete(k) : set.add(k); el.classList.toggle('done'); break;
     }
-    case 'reimport': if (r && confirm('Rezept neu aus dem Video einlesen? Deine Änderungen gehen dabei verloren.')) startImport(videoUrl(r.videoId), true); break;
+    case 'reimport': {
+      const input = r && inputOf(r);
+      if (!input) break;
+      const sib = siblingsOf(r).filter((x) => x.status === 'ok');
+      const msg = sib.length > 1 ? `Alle ${sib.length} Rezepte aus dieser Quelle neu einlesen? Deine Änderungen gehen dabei verloren.` : 'Rezept neu einlesen? Deine Änderungen gehen dabei verloren.';
+      if (confirm(msg) && !needKey(input)) runImport(input, siblingsOf(r));
+      break;
+    }
     case 'delete': if (r && confirm(`„${r.title}“ löschen?`)) { await db.del(r.id); await refresh(); go('#/'); toast('Gelöscht.'); } break;
     case 'tagtoggle': {
       const t = el.dataset.tag, on = el.getAttribute('aria-pressed') !== 'true';
-      const cat = Object.entries(TAXONOMY).find(([, v]) => v.includes(t))[0];
-      if (on && cat !== 'Ernährung') el.parentElement.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', 'false'));
+      if (on && catOf(t) !== 'Ernährung') el.parentElement.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', 'false'));
       el.setAttribute('aria-pressed', String(on)); break;
     }
     case 'thumbpick': el.parentElement.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === el))); break;
@@ -918,6 +1130,10 @@ document.addEventListener('input', (e) => {
 
 document.addEventListener('change', async (e) => {
   if (e.target.id === 'importfile' && e.target.files[0]) importBackup(e.target.files[0]);
+  if (e.target.id === 'photoin' && e.target.files.length) {
+    const files = [...e.target.files]; e.target.value = '';
+    $('#adddlg').close(); startPhotoImport(files);
+  }
 });
 
 document.addEventListener('submit', async (e) => {
@@ -928,19 +1144,32 @@ document.addEventListener('submit', async (e) => {
     state.settings.model = f.model.value.trim() || DEFAULT_MODEL;
     await db.set('settings', state.settings);
     $('#keystatus').innerHTML = '<span class="ok">Gespeichert.</span>';
-    if (pendingLink && state.settings.apiKey) { const l = pendingLink; pendingLink = null; startImport(l); }
+    if (pendingInput && state.settings.apiKey) {
+      const input = pendingInput; pendingInput = null;
+      if (input.kind === 'youtube') startImport(videoUrl(input.videoId)); else runImport(input, []);
+    }
   }
   if (f.id === 'editform') {
     e.preventDefault();
     const r = state.recipes.find((x) => x.id === f.dataset.id); if (!r) return;
     const el = f.elements;
     r.title = el.title.value.trim() || r.title;
+    r.channel = el.channel.value.trim();
     const sv = num(el.servings.value.replace(',', '.'));
     if (sv !== r.servings) r.servingsEst = false;
     r.servings = sv && sv > 0 ? sv : null;
-    const tp = f.querySelector('.thumbpick [aria-pressed="true"]'); if (tp) r.thumb = +tp.dataset.n;
-    const tt = num(el.totalTime.value); r.totalTime = tt && tt > 0 ? tt : null;
-    r.tags = [...f.querySelectorAll('.tagpick .chip[aria-pressed="true"]')].map((c) => c.dataset.tag);
+    const tt = num(el.totalTime.value);
+    if (tt !== r.totalTime) r.totalTimeEst = false;
+    r.totalTime = tt && tt > 0 ? tt : null;
+    const tp = f.querySelector('.thumbpick [aria-pressed="true"]');
+    if (tp) {
+      const k = tp.dataset.n;
+      if (k[0] === 'v') { r.thumb = +k.slice(1); r.image = null; }
+      else if (k[0] === 'p') { r.image = null; r.coverPage = +k.slice(1); }
+    }
+    const picked = [...f.querySelectorAll('.tagpick .chip[aria-pressed="true"]')].map((c) => c.dataset.tag);
+    const tTag = timeTag(r.totalTime);
+    r.tags = ALL_TAGS.filter((t) => picked.includes(t) || t === tTag);
     const old = new Map(r.ingredients.map((i) => [i.id, i]));
     r.ingredients = [...f.querySelectorAll('.ed-ing')].map((row) => {
       const g = (k) => row.querySelector(`[data-f="${k}"]`).value.trim();
@@ -965,7 +1194,7 @@ document.addEventListener('submit', async (e) => {
   }
 });
 
-/* Vorschaubilder: maxres fehlt bei manchen Videos, dann liefert YouTube ein 120px-Platzhalterbild */
+/* Vorschaubilder: fehlende Auflösungen liefert YouTube als 120px-Platzhalter, dann nächste Quelle probieren */
 function nextThumb(img) {
   const rest = (img.dataset.chain || '').split('|').filter(Boolean);
   if (!rest.length) return;
@@ -980,20 +1209,15 @@ document.addEventListener('error', (e) => {
   if (img.tagName === 'IMG' && img.classList.contains('yt')) nextThumb(img);
 }, true);
 
-/* Hinzufuegen-Dialog */
-$('#fab').addEventListener('click', () => { $('#addurl').value = ''; $('#adddlg').showModal(); });
+/* Hinzufügen-Dialog */
+$('#fab').addEventListener('click', () => { $('#addurl').value = ''; $('#addtext').value = ''; $('#textbox').hidden = true; $('#adddlg').showModal(); });
+$('#dlgclose').addEventListener('click', () => $('#adddlg').close());
 $('#pastebtn').addEventListener('click', async () => {
   try { $('#addurl').value = await navigator.clipboard.readText(); } catch (_) { toast('Kein Zugriff auf die Zwischenablage. Füge den Link per Gedrückthalten ein.'); }
 });
-$('#adddlg').addEventListener('close', () => {
-  if ($('#adddlg').returnValue === 'go') startImport($('#addurl').value);
-});
-
-/* Bildschirm waehrend des Imports anlassen, damit Android die App nicht pausiert */
-async function holdScreen() {
-  if (state.wake) return null;
-  try { return await navigator.wakeLock.request('screen'); } catch (_) { return null; }
-}
+$('#urlgo').addEventListener('click', () => { const v = $('#addurl').value; $('#adddlg').close(); startImport(v); });
+$('#texttoggle').addEventListener('click', () => { $('#textbox').hidden = !$('#textbox').hidden; if (!$('#textbox').hidden) $('#addtext').focus(); });
+$('#textgo').addEventListener('click', () => { const v = $('#addtext').value; $('#adddlg').close(); startTextImport(v); });
 
 /* Bildschirm anlassen beim Kochen */
 async function toggleWake() {
@@ -1007,7 +1231,7 @@ document.addEventListener('visibilitychange', async () => {
   if (!document.hidden && state.wake) { try { state.wake = await navigator.wakeLock.request('screen'); } catch (_) {} }
 });
 
-/* Schluessel pruefen */
+/* Schlüssel prüfen */
 async function testKey() {
   const st = $('#keystatus');
   const key = $('#setform').apiKey.value.trim();
@@ -1025,8 +1249,8 @@ async function testKey() {
 
 /* Sicherung */
 function exportBackup() {
-  const data = { app: 'rezeptfang', version: 1, exportedAt: new Date().toISOString(), recipes: state.recipes.filter((r) => r.status === 'ok'), shopping: state.shopping };
-  const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+  const data = { app: 'rezeptfang', version: 2, exportedAt: new Date().toISOString(), recipes: state.recipes.filter((r) => r.status === 'ok'), shopping: state.shopping };
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = `rezeptfang-sicherung-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(a); a.click(); a.remove();
@@ -1037,7 +1261,12 @@ async function importBackup(file) {
   try {
     const data = JSON.parse(await file.text());
     if (data.app !== 'rezeptfang' || !Array.isArray(data.recipes)) throw new Error();
-    for (const r of data.recipes) if (r && r.id && r.videoId) await db.put(r);
+    for (const r of data.recipes) {
+      if (!r || !r.id) continue;
+      if (!r.kind) r.kind = r.videoId ? 'youtube' : 'text';
+      if (!r.tagsV2) { r.tags = migrateTags(r); r.tagsV2 = true; }
+      await db.put(r);
+    }
     if (Array.isArray(data.shopping) && confirm('Auch die Einkaufsliste aus der Sicherung übernehmen?')) { state.shopping = data.shopping; await db.set('shopping', state.shopping); updateShopCount(); }
     state.recipes = await db.all();
     st.innerHTML = `<span class="ok">${data.recipes.length} Rezepte geladen.</span>`;
@@ -1049,11 +1278,19 @@ window.addEventListener('hashchange', render);
 (async function init() {
   await load();
   const params = new URLSearchParams(location.search);
-  const shared = [params.get('url'), params.get('text'), params.get('title')].filter(Boolean).join(' ');
+  const fromShare = params.has('share');
+  const legacy = [params.get('url'), params.get('text'), params.get('title')].filter(Boolean).join(' ');
   if (location.search) history.replaceState(null, '', location.pathname + (location.hash || '#/'));
   render();
-  if (shared) startImport(shared);
-  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if (fromShare) {
+    const items = await inboxTake();
+    for (const it of items) {
+      const files = (it.files || []).filter((x) => x && x.size);
+      if (files.length) await startPhotoImport(files);
+      else if (it.text) await startImport(it.text);
+    }
+  } else if (legacy) startImport(legacy);
 })();
 </script>
 </body>

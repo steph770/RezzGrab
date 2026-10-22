@@ -1,5 +1,6 @@
-// Rezeptfang Service Worker: haelt die App offline verfuegbar und speichert Vorschaubilder zwischen.
-const VERSION = 'rf-v5';
+// Rezeptfang Service Worker: hält die App offline verfügbar, speichert Vorschaubilder zwischen
+// und nimmt geteilte Inhalte (Links, Texte, Bilder) aus dem Android-Teilen-Menü entgegen.
+const VERSION = 'rf-v6';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -14,19 +15,43 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+function inboxPut(item) {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('rf-inbox', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('items', { autoIncrement: true });
+    r.onerror = () => rej(r.error);
+    r.onsuccess = () => {
+      const tx = r.result.transaction('items', 'readwrite');
+      tx.objectStore('items').add(item);
+      tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
+    };
+  });
+}
+
+async function handleShare(req) {
+  try {
+    const fd = await req.formData();
+    const files = fd.getAll('images').filter((f) => f && typeof f === 'object' && f.size);
+    const text = [fd.get('url'), fd.get('text'), fd.get('title')].filter(Boolean).join(' ');
+    await inboxPut({ text, files, at: Date.now() });
+  } catch (_) {}
+  return Response.redirect(new URL('./?share=1', self.registration.scope).href, 303);
+}
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // Seitenaufrufe (auch ?text=... vom Teilen-Menue): zuerst Netz, sonst Cache
+  if (req.method === 'POST' && url.pathname.endsWith('/share-target')) { e.respondWith(handleShare(req)); return; }
+  if (req.method !== 'GET') return;
+
+  // Seitenaufrufe: zuerst Netz, sonst Cache
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(VERSION).then((c) => c.put('./index.html', copy));
-          return res;
+          if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put('./index.html', copy)); }
+          return res.ok ? res : caches.match('./index.html').then((hit) => hit || res);
         })
         .catch(() => caches.match('./index.html'))
     );
@@ -49,5 +74,4 @@ self.addEventListener('fetch', (e) => {
   if (url.origin === location.origin) {
     e.respondWith(caches.match(req).then((hit) => hit || fetch(req)));
   }
-  // Alles andere (OpenRouter, oEmbed) geht direkt ans Netz.
 });
