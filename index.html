@@ -304,7 +304,7 @@ html[data-design="kartei"] body{font-family:var(--display)}
 [data-design="kartei"] .tile.tt:not(.cropvp) .cap{padding-top:22px;min-height:96px;justify-content:flex-end}
 [data-design="kartei"] .tile.tt:not(.cropvp) .cap b{font-size:18px;-webkit-line-clamp:5}
 /* Rezept als Karteikarte */
-[data-design="kartei"] article{position:relative;background-color:var(--surface);background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 27px,#D3E0EC 27px,#D3E0EC 28px);border-radius:6px;padding:16px 14px 20px 34px;margin:12px -6px 24px;box-shadow:0 1px 0 #B9C1BB,0 6px 14px rgba(30,40,34,.12)}
+[data-design="kartei"] article{position:relative;background-color:var(--surface);border-radius:6px;padding:16px 14px 20px 34px;margin:12px -6px 24px;box-shadow:0 1px 0 #B9C1BB,0 6px 14px rgba(30,40,34,.12)}
 [data-design="kartei"] article::before{content:"";position:absolute;left:22px;top:0;bottom:0;width:1.5px;background:#E39B9B}
 [data-design="kartei"] .hero{margin:4px 0 0 -18px;border:8px solid #FFFFFF;border-radius:3px;transform:rotate(-1.2deg);box-shadow:0 8px 18px rgba(30,40,34,.22);overflow:visible}
 [data-design="kartei"] .hero::before{content:"";position:absolute;top:-16px;left:42%;width:72px;height:22px;background:rgba(240,232,200,.88);transform:rotate(3deg);z-index:2}
@@ -321,15 +321,18 @@ html[data-design="kartei"] body{font-family:var(--display)}
 [data-design="kartei"] .servings{background:transparent;border:0;padding:0;font-family:var(--type)}
 [data-design="kartei"] .servings button{background:transparent;border:1.5px solid #1D1F1E;border-radius:3px;width:44px;height:44px}
 [data-design="kartei"] .servings .val strong{font-family:var(--type);font-size:24px}
-[data-design="kartei"] .ings li{border-bottom:0;padding:0;line-height:28px;font-family:var(--type);font-size:15px;grid-template-columns:84px 1fr}
+[data-design="kartei"] .ings,[data-design="kartei"] .steps,[data-design="kartei"] .tips{--rule:repeating-linear-gradient(to bottom,transparent 0,transparent 27px,#C9DAEA 27px,#C9DAEA 28px);background-image:var(--rule);background-position:0 0;line-height:28px}
+[data-design="kartei"] .ings li{border-bottom:0;padding:0;line-height:28px;font-family:var(--type);font-size:15px;grid-template-columns:84px 1fr;gap:0 12px}
+[data-design="kartei"] .ings .note,[data-design="kartei"] .ings .missing{line-height:inherit}
 [data-design="kartei"] .ings .missing{background:transparent;color:#B6403A;border:1px solid #B6403A;font-family:var(--tape)}
-[data-design="kartei"] .steps li{border-bottom:0;padding:6px 0;grid-template-columns:28px 1fr}
+[data-design="kartei"] .steps li{border-bottom:0;padding:0;margin:0;grid-template-columns:28px 1fr;line-height:28px}
+[data-design="kartei"] .steps li > div{line-height:28px}
 [data-design="kartei"] .steps li::before{font-family:var(--type);color:#B6403A;font-size:17px;line-height:28px}
 [data-design="kartei"] .steps p{font-family:var(--type);font-size:15.5px;line-height:28px}
-[data-design="kartei"] .ing{background:#F6E27A;color:#1D1F1E;font-family:var(--type);font-weight:700;font-size:15px;border-radius:1px}
+[data-design="kartei"] .ing{background:#F6E27A;color:#1D1F1E;font-family:var(--type);font-weight:700;font-size:15px;border-radius:1px;line-height:inherit;white-space:normal}
 [data-design="kartei"] .ing.est{background:transparent;border:1.5px dashed #B6403A}
-[data-design="kartei"] .tips{background:transparent;border-left:3px solid #B6403A;border-radius:0;font-family:var(--type);font-size:15px}
-[data-design="kartei"] .ts{font-family:var(--tape);letter-spacing:.5px;color:var(--herb)}
+[data-design="kartei"] .tips{background-color:transparent;border-left:3px solid #B6403A;border-radius:0;padding:0 0 0 12px;font-family:var(--type);font-size:15px}
+[data-design="kartei"] .ts{display:block;margin:0;line-height:28px;font-family:var(--tape);letter-spacing:.5px;color:var(--herb)}
 </style>
 </head>
 <body>
@@ -378,7 +381,7 @@ html[data-design="kartei"] body{font-family:var(--display)}
 <script>
 'use strict';
 /* ---------- Konstanten ---------- */
-const APP_VERSION = '2.7 vom 22.10.2026';
+const APP_VERSION = '2.8 vom 22.10.2026';
 const DEFAULT_MODEL = 'google/gemini-3.8-flash';
 const TAXONOMY = {
   Quelle: ['Youtube', 'Buch', 'Zeitung', 'Blog'],

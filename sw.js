@@ -1,7 +1,7 @@
 // ReciGrab Service Worker: hält die App offline verfügbar, speichert Vorschaubilder zwischen
 // nimmt geteilte Inhalte (Links, Texte, Bilder) aus dem Android-Teilen-Menü entgegen
 // und führt Rezept-Importe im Hintergrund aus, auch wenn die App nicht sichtbar ist.
-const VERSION = 'rf-v13';
+const VERSION = 'rf-v14';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {
